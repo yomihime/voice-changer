@@ -3,6 +3,7 @@ from voice_changer.RVC.backend.exceptions import RvcBackendConfigError
 
 
 def create_rvc_backend(kind: str, config: RvcBackendConfig) -> RvcBackend:
+    # Hybrid is reserved in hybrid.py, not a selectable or implemented backend.
     if kind == "legacy":
         from voice_changer.RVC.backend.legacy import LegacyRvcBackend
 

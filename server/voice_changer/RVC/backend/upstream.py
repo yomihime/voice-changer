@@ -34,7 +34,16 @@ UPSTREAM_COMMIT = "81eed5e8f68b6bed1789f682fe78cdd324495afc"
 
 
 class UpstreamRvcBackend:
-    """VCClient adapter for official RVC's realtime inference core."""
+    """VCClient adapter for official RVC's realtime inference core.
+
+    Integration policy: prefer upstream's supported entry points and preserve
+    its inference flow. Keep adaptation limited to host I/O, stream geometry,
+    settings, resources, and device/lifecycle requirements. This adapter must
+    not depend on Hybrid or acquire custom audio-enhancement algorithms.
+
+    Existing downstream processing and vendor patches still require a separate
+    convergence review; this policy does not assert upstream parity today.
+    """
 
     name = "official"
 
