@@ -27,4 +27,8 @@ websockets==11.0.2
 sounddevice==0.4.6
 dataclasses_json==0.5.7
 onnxsim==0.4.28
-torchfcpe==0.0.3
+torchfcpe==0.0.4
+# Minimal Official RVC realtime dependencies. Do not install the upstream
+# WebUI requirements wholesale; they conflict with VCClient's application stack.
+transformers==4.49.0
+praat-parselmouth==0.4.5

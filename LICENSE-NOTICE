@@ -9,5 +9,12 @@
 2. Beatrice JVS Corpus Edition のライセンスについてはこちらを確認してください。
   [readme](https://github.com/w-okada/voice-changer/blob/master/server/voice_changer/Beatrice/)
 
+3. Official RVC inference runtime
+
+   This distribution includes a runtime subset of
+   RVC-Project/Retrieval-based-Voice-Conversion-WebUI, licensed under the MIT
+   License. The preserved license and upstream metadata are in
+   `third_party/rvc/LICENSE` and `third_party/rvc/UPSTREAM.md`.
+
   Please check here for the license of the Beatrice JVS Corpus Edition.
   [readme](https://github.com/w-okada/voice-changer/blob/master/server/voice_changer/Beatrice/)

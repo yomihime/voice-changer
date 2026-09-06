@@ -18,9 +18,13 @@ export const QualityArea = (props: QualityAreaProps) => {
         }
 
         const generateF0DetOptions = () => {
+            const detectors =
+                serverSetting.serverSetting.rvcBackend === "official"
+                    ? ["rmvpe", "fcpe", "pm"]
+                    : Object.values(props.detectors);
             if (edition.indexOf("onnxdirectML-cuda") >= 0) {
                 const recommended = ["crepe_tiny", "rmvpe_onnx"];
-                return Object.values(props.detectors).map((x) => {
+                return detectors.map((x) => {
                     if (recommended.includes(x)) {
                         return (
                             <option key={x} value={x}>
@@ -36,7 +40,7 @@ export const QualityArea = (props: QualityAreaProps) => {
                     }
                 });
             } else {
-                return Object.values(props.detectors).map((x) => {
+                return detectors.map((x) => {
                     return (
                         <option key={x} value={x}>
                             {x}

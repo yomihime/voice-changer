@@ -7,6 +7,11 @@ from voice_changer.utils.VoiceChangerParams import VoiceChangerParams
 from Exceptions import WeightDownladException
 
 logger = VoiceChangaerLogger.get_instance().getLogger()
+RVC_UPSTREAM_ASSET_REVISION = "e6d0c1a17da07c33557852f9dfa2bd44cc75737d"
+RVC_UPSTREAM_ASSET_BASE = (
+    "https://huggingface.co/lj1995/VoiceConversionWebUI/resolve/"
+    f"{RVC_UPSTREAM_ASSET_REVISION}/hubert_base"
+)
 
 
 def downloadWeight(voiceChangerParams: VoiceChangerParams):
@@ -20,6 +25,15 @@ def downloadWeight(voiceChangerParams: VoiceChangerParams):
     rmvpe = voiceChangerParams.rmvpe
     rmvpe_onnx = voiceChangerParams.rmvpe_onnx
     whisper_tiny = voiceChangerParams.whisper_tiny
+    rvc_upstream_hubert_dir = voiceChangerParams.rvc_upstream_hubert
+    rvc_upstream_hubert = [
+        os.path.join(rvc_upstream_hubert_dir, filename)
+        for filename in (
+            "config.json",
+            "preprocessor_config.json",
+            "pytorch_model.bin",
+        )
+    ]
 
     weight_files = [
         content_vec_500_onnx,
@@ -31,6 +45,7 @@ def downloadWeight(voiceChangerParams: VoiceChangerParams):
         crepe_onnx_tiny,
         rmvpe,
         whisper_tiny,
+        *rvc_upstream_hubert,
     ]
 
     # file exists check (currently only for rvc)
@@ -138,10 +153,25 @@ def downloadWeight(voiceChangerParams: VoiceChangerParams):
             }
         )
 
+    for offset, (filename, save_to) in enumerate(
+        zip(
+            ("config.json", "preprocessor_config.json", "pytorch_model.bin"),
+            rvc_upstream_hubert,
+        )
+    ):
+        if os.path.exists(save_to) is False:
+            downloadParams.append(
+                {
+                    "url": f"{RVC_UPSTREAM_ASSET_BASE}/{filename}",
+                    "saveTo": save_to,
+                    "position": 11 + offset,
+                }
+            )
+
     with ThreadPoolExecutor() as pool:
         pool.map(download, downloadParams)
 
-    if os.path.exists(hubert_base) is False or os.path.exists(hubert_base_jp) is False or os.path.exists(hubert_soft) is False or os.path.exists(nsf_hifigan) is False or os.path.exists(nsf_hifigan_config) is False:
+    if os.path.exists(hubert_base) is False or os.path.exists(hubert_base_jp) is False or os.path.exists(hubert_soft) is False or os.path.exists(nsf_hifigan) is False or os.path.exists(nsf_hifigan_config) is False or any(os.path.exists(path) is False for path in rvc_upstream_hubert):
         raise WeightDownladException()
 
     # ファイルサイズをログに書き込む。（デバッグ用）

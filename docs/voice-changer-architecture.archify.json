@@ -1,0 +1,205 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "VCClient 实时变声系统架构",
+    "locale": "zh-CN",
+    "output": "voice-changer-architecture.html",
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "audio-endpoint",
+      "type": "external",
+      "label": "音频端点",
+      "sublabel": "麦克风 / 扬声器",
+      "pos": [30, 300],
+      "size": [140, 68]
+    },
+    {
+      "id": "browser-client",
+      "type": "frontend",
+      "label": "浏览器客户端",
+      "sublabel": "Web Audio + AudioWorklet",
+      "tag": "采集 / 播放 / 分块",
+      "pos": [210, 180],
+      "size": [170, 76]
+    },
+    {
+      "id": "server-device",
+      "type": "backend",
+      "label": "ServerDevice",
+      "sublabel": "本机声卡流",
+      "tag": "输入 / 输出 / 监听",
+      "pos": [210, 430],
+      "size": [170, 76]
+    },
+    {
+      "id": "transport",
+      "type": "backend",
+      "label": "传输与 API 层",
+      "sublabel": "FastAPI + Socket.IO",
+      "tag": "REST / ASGI",
+      "pos": [430, 180],
+      "size": [170, 76]
+    },
+    {
+      "id": "manager",
+      "type": "backend",
+      "label": "VoiceChangerManager",
+      "sublabel": "模型槽与统一入口",
+      "tag": "changeVoice",
+      "pos": [660, 300],
+      "size": [180, 76]
+    },
+    {
+      "id": "stream-host",
+      "type": "backend",
+      "label": "VoiceChangerV2",
+      "sublabel": "流式拼接与输出整形",
+      "tag": "SOLA + crossfade",
+      "pos": [900, 300],
+      "size": [180, 76]
+    },
+    {
+      "id": "rvc-host",
+      "type": "backend",
+      "label": "RVCr2",
+      "sublabel": "后端选择与设置映射",
+      "tag": "RvcBackend 接口",
+      "pos": [1140, 300],
+      "size": [180, 76]
+    },
+    {
+      "id": "legacy-backend",
+      "type": "backend",
+      "label": "LegacyRvcBackend",
+      "sublabel": "VCClient 原有推理链",
+      "tag": "legacy",
+      "pos": [1140, 90],
+      "size": [180, 76]
+    },
+    {
+      "id": "official-backend",
+      "type": "backend",
+      "label": "UpstreamRvcBackend",
+      "sublabel": "Official RVC 适配器",
+      "tag": "official",
+      "pos": [1140, 510],
+      "size": [180, 76]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "VCClient 服务器进程",
+      "wraps": [
+        "server-device",
+        "transport",
+        "manager",
+        "stream-host",
+        "rvc-host",
+        "legacy-backend",
+        "official-backend"
+      ],
+      "pad": 34
+    },
+    {
+      "kind": "region",
+      "label": "可切换 RVC 推理后端",
+      "wraps": ["rvc-host", "legacy-backend", "official-backend"],
+      "pad": 18
+    }
+  ],
+  "connections": [
+    {
+      "id": "endpoint-browser",
+      "from": "audio-endpoint",
+      "to": "browser-client",
+      "label": "Web Audio PCM",
+      "variant": "emphasis",
+      "labelAt": [190, 270]
+    },
+    {
+      "id": "endpoint-device",
+      "from": "audio-endpoint",
+      "to": "server-device",
+      "label": "SoundDevice PCM",
+      "variant": "dashed"
+    },
+    {
+      "id": "browser-transport",
+      "from": "browser-client",
+      "to": "transport",
+      "label": "Socket.IO / REST",
+      "variant": "emphasis",
+      "labelAt": [410, 270]
+    },
+    {
+      "id": "transport-manager",
+      "from": "transport",
+      "to": "manager",
+      "label": "changeVoice"
+    },
+    {
+      "id": "device-manager",
+      "from": "server-device",
+      "to": "manager",
+      "label": "on_request",
+      "variant": "dashed"
+    },
+    {
+      "id": "manager-stream",
+      "from": "manager",
+      "to": "stream-host",
+      "label": "on_request"
+    },
+    {
+      "id": "stream-rvc",
+      "from": "stream-host",
+      "to": "rvc-host",
+      "label": "infer + overlap",
+      "labelAt": [1120, 390]
+    },
+    {
+      "id": "rvc-legacy",
+      "from": "rvc-host",
+      "to": "legacy-backend",
+      "label": "rvcBackend=legacy"
+    },
+    {
+      "id": "rvc-official",
+      "from": "rvc-host",
+      "to": "official-backend",
+      "label": "rvcBackend=official",
+      "variant": "emphasis",
+      "labelAt": [1240, 390]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "两条实时入口",
+      "items": [
+        "浏览器通过 AudioWorklet 分块，并经 Socket.IO 或 REST 传输 PCM",
+        "ServerDevice 直接管理本机输入、输出和监听设备"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "单一处理主链",
+      "items": [
+        "所有入口汇聚到 VoiceChangerManager.changeVoice",
+        "VoiceChangerV2 只执行一次 SOLA、crossfade 与输出长度整形"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "后端解耦边界",
+      "items": [
+        "RVCr2 持有设置并在 legacy 与 official 之间显式切换",
+        "Official RVC 仅负责推理，不拥有音频设备、LAN 传输或模型槽"
+      ]
+    }
+  ]
+}

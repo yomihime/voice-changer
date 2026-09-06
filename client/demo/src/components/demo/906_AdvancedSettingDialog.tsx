@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { useGuiState } from "./001_GuiStateProvider";
 import { useAppState } from "../../001_provider/001_AppStateProvider";
-import { CrossFadeOverlapSize, Protocol } from "@dannadori/voice-changer-client-js";
+import { CrossFadeOverlapSize, Protocol, RVCBackend } from "@dannadori/voice-changer-client-js";
 
 export const AdvancedSettingDialog = () => {
     const guiState = useGuiState();
@@ -196,6 +196,31 @@ export const AdvancedSettingDialog = () => {
                 </div>
             </div>
         );
+        const rvcBackendRow = (
+            <div className="advanced-setting-container-row">
+                <div className="advanced-setting-container-row-title">RVC Backend</div>
+                <div className="advanced-setting-container-row-field">
+                    <select
+                        value={serverSetting.serverSetting.rvcBackend || RVCBackend.legacy}
+                        onChange={(e) => {
+                            serverSetting.updateServerSettings({
+                                ...serverSetting.serverSetting,
+                                rvcBackend: e.target.value as RVCBackend,
+                            });
+                        }}
+                    >
+                        <option value={RVCBackend.legacy}>Legacy</option>
+                        <option value={RVCBackend.official}>Official</option>
+                    </select>
+                </div>
+            </div>
+        );
+        const rvcBackendErrorRow = serverSetting.serverSetting.backendError ? (
+            <div className="advanced-setting-container-row">
+                <div className="advanced-setting-container-row-title">RVC Backend Error</div>
+                <div className="advanced-setting-container-row-field">{serverSetting.serverSetting.backendError}</div>
+            </div>
+        ) : null;
         const skipPassThroughConfirmationRow = (
             <div className="advanced-setting-container-row">
                 <div className="advanced-setting-container-row-title-long">Skip Pass through confirmation</div>
@@ -220,6 +245,8 @@ export const AdvancedSettingDialog = () => {
                 {silenceFrontRow}
                 {protectRow}
                 {rvcQualityRow}
+                {rvcBackendRow}
+                {rvcBackendErrorRow}
                 {skipPassThroughConfirmationRow}
             </div>
         );
