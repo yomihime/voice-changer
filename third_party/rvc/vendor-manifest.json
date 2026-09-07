@@ -1,0 +1,195 @@
+{
+  "repository": "https://github.com/RVC-Project/Retrieval-based-Voice-Conversion-WebUI",
+  "upstreamCommit": "81eed5e8f68b6bed1789f682fe78cdd324495afc",
+  "files": [
+    {
+      "source": "LICENSE",
+      "destination": "LICENSE",
+      "sha256": "bec61ed1eb9a3748644ddbc50303aa6978e14eeaba46822e59a006c722b52585"
+    },
+    {
+      "source": "README.md",
+      "destination": "README.upstream.md",
+      "sha256": "6ae347c0cc60836f1e7fd2b73ee73327746e66c32a5dd4270d02a096810bca8b"
+    },
+    {
+      "source": "requirments_cu118_py312.txt",
+      "destination": "requirements-upstream-cu118.txt",
+      "sha256": "2cd130fdadc168608882f6c83cad49198e6a27b384853fade363c7aa0f672e33"
+    },
+    {
+      "source": "requirments_cu128_py312.txt",
+      "destination": "requirements-upstream-cu128.txt",
+      "sha256": "a91b0df33baeb49566446a15c745d8708916962c8e1fb2b9fdeba163df1d2494"
+    },
+    {
+      "source": "configs/config.json",
+      "destination": "configs/config.json",
+      "sha256": "fb622a8ecb6415ccbe8f96604fd611d826640b7035bc20cc6cb4d75f24d6d9cb"
+    },
+    {
+      "source": "configs/config.py",
+      "destination": "configs/config.py",
+      "sha256": "f304463184b55898aa256fadeafd50d640ed0f880dbae6f89ad54db358240043"
+    },
+    {
+      "source": "configs/v1/32k.json",
+      "destination": "configs/v1/32k.json",
+      "sha256": "9083cc6cb3f04038f2393296c131e12b3b08776eb3211768ca627db53b8dbc02"
+    },
+    {
+      "source": "configs/v1/40k.json",
+      "destination": "configs/v1/40k.json",
+      "sha256": "da8c508eef404263cedfe6a85fd5a0b7d631a0a29766b392df145e8ea0412fb8"
+    },
+    {
+      "source": "configs/v1/48k.json",
+      "destination": "configs/v1/48k.json",
+      "sha256": "4d10ba967f0e5f64ec2b25ee59b5fc8656beb2b4f261a10b6a94130f36f83dec"
+    },
+    {
+      "source": "configs/v2/32k.json",
+      "destination": "configs/v2/32k.json",
+      "sha256": "2fd8ba5753090847fc50667cf54fdee02ac21f56e5ebd4f3cd2f2ec67e2b4f18"
+    },
+    {
+      "source": "configs/v2/48k.json",
+      "destination": "configs/v2/48k.json",
+      "sha256": "09462f2a021bb30d130ad977c87dae977393e542e220b3cca7084c08ca8107a7"
+    },
+    {
+      "source": "i18n/i18n.py",
+      "destination": "i18n/i18n.py",
+      "sha256": "cc0cc76a6c139b46b525d02362d8a33261d08abbcde6594ebe51e73573b9d324"
+    },
+    {
+      "source": "i18n/locale/en_US.json",
+      "destination": "i18n/locale/en_US.json",
+      "sha256": "7caed6d5898a13834f9a1a0c6471a609dc687f37e745b2f8eda3e274b6e84a30"
+    },
+    {
+      "source": "i18n/locale/es_ES.json",
+      "destination": "i18n/locale/es_ES.json",
+      "sha256": "79da1e5b47469038df28565aaf81bc2850c5885948680a1ab6a846ca7a8a1871"
+    },
+    {
+      "source": "i18n/locale/fr_FR.json",
+      "destination": "i18n/locale/fr_FR.json",
+      "sha256": "6927f84723291b9c39622a0a7d4e55b7e8a034b090022a64af667bc8b307d8c2"
+    },
+    {
+      "source": "i18n/locale/it_IT.json",
+      "destination": "i18n/locale/it_IT.json",
+      "sha256": "2499e4946816660c1c9a3f8eb59f64d7b578bef463f8afccc956d60efd540328"
+    },
+    {
+      "source": "i18n/locale/ja_JP.json",
+      "destination": "i18n/locale/ja_JP.json",
+      "sha256": "a2a6280f35f9ac6bbeb6bc2ef6a725ea1937af98bfa3c2ea70263dab63274142"
+    },
+    {
+      "source": "i18n/locale/ko_KR.json",
+      "destination": "i18n/locale/ko_KR.json",
+      "sha256": "0baeca1d124ee1375570f2481af4509bcbcae8152171adc414758b95199e8e47"
+    },
+    {
+      "source": "i18n/locale/pt_BR.json",
+      "destination": "i18n/locale/pt_BR.json",
+      "sha256": "5119ffa193b3a7537062d11816e10efb592c0b0f1570bf8cb209f747014fae21"
+    },
+    {
+      "source": "i18n/locale/ru_RU.json",
+      "destination": "i18n/locale/ru_RU.json",
+      "sha256": "98e1d37bbc826358a148aded2dd08db15e2234bea8a061e2f3b36ed8fda27298"
+    },
+    {
+      "source": "i18n/locale/tr_TR.json",
+      "destination": "i18n/locale/tr_TR.json",
+      "sha256": "2bd225550f25a7b836deb4c2f1d45130e629f6a54b068c2641d686d18a3fbd87"
+    },
+    {
+      "source": "i18n/locale/zh_CN.json",
+      "destination": "i18n/locale/zh_CN.json",
+      "sha256": "7a9b212b53c517d729c06e1c324c657c5f5e7dfcb906c0c58a63308f35d9c2dc"
+    },
+    {
+      "source": "i18n/locale/zh_HK.json",
+      "destination": "i18n/locale/zh_HK.json",
+      "sha256": "3db94ea74b06a59b4a1dd5125b4247ae25c7530ba62caaef0f3d2dcf5b7d70d2"
+    },
+    {
+      "source": "i18n/locale/zh_SG.json",
+      "destination": "i18n/locale/zh_SG.json",
+      "sha256": "42c8d885575926bce16d2cd9db3e84819558f8e0b31b67923018c695b3b40e0d"
+    },
+    {
+      "source": "i18n/locale/zh_TW.json",
+      "destination": "i18n/locale/zh_TW.json",
+      "sha256": "6300d31f95e62ff36876f153417e246ff8e8a8b14163797bd9afde5ecd5ea047"
+    },
+    {
+      "source": "infer/fcpe.py",
+      "destination": "infer/fcpe.py",
+      "sha256": "55e85e7809ba9258774972990a006710fec68005c62407070a209003964af6bc"
+    },
+    {
+      "source": "infer/hubert.py",
+      "destination": "infer/hubert.py",
+      "sha256": "bbfba54d1d83eae3fb634b2909f8f6bf41e6ffe436200ec246867c5c93ebba26"
+    },
+    {
+      "source": "infer/rmvpe.py",
+      "destination": "infer/rmvpe.py",
+      "sha256": "074171aec63e4b68f04d8691c62af50a1d99b9bc6dc56c4d6749fad4ba64853a"
+    },
+    {
+      "source": "infer/rtrvc.py",
+      "destination": "infer/rtrvc.py",
+      "sha256": "c04d2f2d38ed67ca5c1846f4b392befdf0cf7a6172cffe679a81c039dc1642bc"
+    },
+    {
+      "source": "infer/module/attentions.py",
+      "destination": "infer/module/attentions.py",
+      "sha256": "8820e6047353d99344fc73fbb6c69d85e4f61066fc498982cc895e9577d4519f"
+    },
+    {
+      "source": "infer/module/commons.py",
+      "destination": "infer/module/commons.py",
+      "sha256": "132a907eff444907861e63684c04c88ae631d03707470858f7c53f857b0cc5c8"
+    },
+    {
+      "source": "infer/module/models.py",
+      "destination": "infer/module/models.py",
+      "sha256": "769615b8dbed4775c8083881663a79c0e5ec0b662dd5f0c0a1bc3ccdd9827e99"
+    },
+    {
+      "source": "infer/module/modules.py",
+      "destination": "infer/module/modules.py",
+      "sha256": "b1aa77b0921468a61492fa89ed1f1212cd22fee3caa551befe44d8ab359fd2f1"
+    },
+    {
+      "source": "infer/module/transforms.py",
+      "destination": "infer/module/transforms.py",
+      "sha256": "fb0d3320adf32ca0eaa44dd56e8922927f77ec3dd45c775e10c3da1704072c6a"
+    },
+    {
+      "source": "tools/cuda_graph.py",
+      "destination": "tools/cuda_graph.py",
+      "sha256": "e3b4ce4fc8a33a3a921e70f78ce6965440c770d79d3ce71fb9f215db3a2db1a2"
+    },
+    {
+      "source": "tools/file_io.py",
+      "destination": "tools/file_io.py",
+      "sha256": "5d62654c16fd3df3e5fdeee8b61d981a861db14b0485b82258d483a572f0be60"
+    }
+  ],
+  "localPackageFiles": [
+    "__init__.py",
+    "configs/__init__.py",
+    "i18n/__init__.py",
+    "infer/__init__.py",
+    "infer/module/__init__.py",
+    "tools/__init__.py"
+  ],
+  "patch": "patches/0001-vcclient-runtime-adapter.patch"
+}

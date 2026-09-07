@@ -1,0 +1,250 @@
+diff --git a/__init__.py b/__init__.py
+new file mode 100644
+index 0000000..5c845da
+--- /dev/null
++++ b/__init__.py
+@@ -0,0 +1 @@
++"""Vendored official RVC runtime package."""
+diff --git a/configs/__init__.py b/configs/__init__.py
+new file mode 100644
+index 0000000..8a473b3
+--- /dev/null
++++ b/configs/__init__.py
+@@ -0,0 +1 @@
++"""Official RVC configuration data retained for upstream comparison."""
+diff --git a/configs/config.py b/configs/config.py
+index 525fec9..6533ad2 100644
+--- a/configs/config.py
++++ b/configs/config.py
+@@ -8 +8 @@ from pathlib import Path
+-from tools.file_io import read_text
++from ..tools.file_io import read_text
+@@ -13 +13 @@ import logging
+-from tools.cuda_graph import configure_cuda_graph
++from ..tools.cuda_graph import configure_cuda_graph
+diff --git a/i18n/__init__.py b/i18n/__init__.py
+new file mode 100644
+index 0000000..24eb73f
+--- /dev/null
++++ b/i18n/__init__.py
+@@ -0,0 +1 @@
++"""Official RVC translations."""
+diff --git a/i18n/i18n.py b/i18n/i18n.py
+index 9afa437..9306afe 100644
+--- a/i18n/i18n.py
++++ b/i18n/i18n.py
+@@ -3,2 +3,5 @@ import locale
+-import os
+-from tools.file_io import read_text
++from pathlib import Path
++
++from ..tools.file_io import read_text
++
++LOCALE_DIR = Path(__file__).resolve().parent / "locale"
+@@ -8 +11 @@ def load_language_list(language):
+-    return json.loads(read_text(f"./i18n/locale/{language}.json"))
++    return json.loads(read_text(LOCALE_DIR / f"{language}.json"))
+@@ -17 +20 @@ class I18nAuto:
+-        if not os.path.exists(f"./i18n/locale/{language}.json"):
++        if not (LOCALE_DIR / f"{language}.json").is_file():
+diff --git a/infer/__init__.py b/infer/__init__.py
+new file mode 100644
+index 0000000..6e4d1bb
+--- /dev/null
++++ b/infer/__init__.py
+@@ -0,0 +1 @@
++"""Official RVC inference modules."""
+diff --git a/infer/fcpe.py b/infer/fcpe.py
+index 1d4f34c..cd17ef9 100644
+--- a/infer/fcpe.py
++++ b/infer/fcpe.py
+@@ -3 +3 @@ import torch
+-from tools.cuda_graph import cuda_graph_enabled, run_cuda_graph
++from ..tools.cuda_graph import cuda_graph_enabled, run_cuda_graph
+diff --git a/infer/hubert.py b/infer/hubert.py
+index 897ebcd..cf280cb 100644
+--- a/infer/hubert.py
++++ b/infer/hubert.py
+@@ -9 +9 @@ from transformers import AutoFeatureExtractor, HubertModel
+-from tools.cuda_graph import run_cuda_graph
++from ..tools.cuda_graph import run_cuda_graph
+@@ -31 +31 @@ def _device_type(device):
+-def load_hubert_model(device, is_half=False):
++def load_hubert_model(device, is_half=False, model_path=None):
+@@ -33 +33,2 @@ def load_hubert_model(device, is_half=False):
+-    if not (HUBERT_MODEL_PATH / "config.json").is_file():
++    resolved_model_path = Path(model_path).resolve() if model_path else HUBERT_MODEL_PATH
++    if not (resolved_model_path / "config.json").is_file():
+@@ -35 +36 @@ def load_hubert_model(device, is_half=False):
+-            f"Transformers HuBERT model not found: {HUBERT_MODEL_PATH}"
++            f"Transformers HuBERT model not found: {resolved_model_path}"
+@@ -49 +50 @@ def load_hubert_model(device, is_half=False):
+-        HUBERT_MODEL_PATH,
++        resolved_model_path,
+@@ -54 +55 @@ def load_hubert_model(device, is_half=False):
+-        str(HUBERT_MODEL_PATH), **load_options
++        str(resolved_model_path), **load_options
+diff --git a/infer/module/__init__.py b/infer/module/__init__.py
+new file mode 100644
+index 0000000..139ec23
+--- /dev/null
++++ b/infer/module/__init__.py
+@@ -0,0 +1 @@
++"""Official RVC synthesizer modules."""
+diff --git a/infer/module/attentions.py b/infer/module/attentions.py
+index 3bee552..34b8e95 100644
+--- a/infer/module/attentions.py
++++ b/infer/module/attentions.py
+@@ -10,2 +10,2 @@ from torch.nn import functional as F
+-from infer.module import commons, modules
+-from infer.module.modules import LayerNorm
++from . import commons, modules
++from .modules import LayerNorm
+diff --git a/infer/module/models.py b/infer/module/models.py
+index d0e6124..40010b6 100644
+--- a/infer/module/models.py
++++ b/infer/module/models.py
+@@ -13,2 +13,2 @@ from torch.nn.utils import remove_weight_norm, spectral_norm, weight_norm
+-from infer.module import attentions, commons, modules
+-from infer.module.commons import get_padding, init_weights
++from . import attentions, commons, modules
++from .commons import get_padding, init_weights
+diff --git a/infer/module/modules.py b/infer/module/modules.py
+index f4ee1ca..b69eace 100644
+--- a/infer/module/modules.py
++++ b/infer/module/modules.py
+@@ -13,3 +13,3 @@ from torch.nn.utils import remove_weight_norm, weight_norm
+-from infer.module import commons
+-from infer.module.commons import get_padding, init_weights
+-from infer.module.transforms import piecewise_rational_quadratic_transform
++from . import commons
++from .commons import get_padding, init_weights
++from .transforms import piecewise_rational_quadratic_transform
+diff --git a/infer/rmvpe.py b/infer/rmvpe.py
+index 6700cd5..33e2f9f 100644
+--- a/infer/rmvpe.py
++++ b/infer/rmvpe.py
+@@ -11 +11 @@ from scipy.signal import get_window
+-from tools.cuda_graph import run_cuda_graph
++from ..tools.cuda_graph import run_cuda_graph
+@@ -491 +491 @@ class RMVPE:
+-            from configs.config import infer_device, infer_dtype
++            from ..configs.config import infer_device, infer_dtype
+@@ -496 +496 @@ class RMVPE:
+-            from configs.config import get_device_dtype_sm
++            from ..configs.config import get_device_dtype_sm
+diff --git a/infer/rtrvc.py b/infer/rtrvc.py
+index ecd6b31..c4aa66a 100644
+--- a/infer/rtrvc.py
++++ b/infer/rtrvc.py
+@@ -11,3 +11,3 @@ from torchaudio.transforms import Resample
+-from infer.hubert import extract_hubert_features, load_hubert_model
+-from i18n.i18n import I18nAuto
+-from tools.cuda_graph import run_cuda_graph
++from .hubert import extract_hubert_features, load_hubert_model
++from ..i18n.i18n import I18nAuto
++from ..tools.cuda_graph import run_cuda_graph
+@@ -27 +27 @@ def get_synthesizer(pth_path, device=torch.device("cpu")):
+-    from infer.module.models import (
++    from .module.models import (
+@@ -67,0 +68,3 @@ class RVC:
++        hubert_path=None,
++        rmvpe_path=None,
++        speaker_id=0,
+@@ -90,0 +94,3 @@ class RVC:
++            self.hubert_path = hubert_path
++            self.rmvpe_path = rmvpe_path
++            self.speaker_id = int(speaker_id)
+@@ -102 +108,3 @@ class RVC:
+-                self.model = load_hubert_model(self.device, self.is_half)
++                self.model = load_hubert_model(
++                    self.device, self.is_half, self.hubert_path
++                )
+@@ -111,0 +120 @@ class RVC:
++                self.n_spk = cpt["config"][-3]
+@@ -124,0 +134 @@ class RVC:
++                self.n_spk = last_rvc.n_spk
+@@ -132 +142 @@ class RVC:
+-        except:
++        except Exception:
+@@ -133,0 +144 @@ class RVC:
++            raise
+@@ -147,0 +159,8 @@ class RVC:
++    def change_speaker_id(self, new_speaker_id):
++        speaker_id = int(new_speaker_id)
++        if speaker_id < 0 or speaker_id >= self.n_spk:
++            raise ValueError(
++                f"Speaker id {speaker_id} is outside model range 0..{self.n_spk - 1}"
++            )
++        self.speaker_id = speaker_id
++
+@@ -192 +211 @@ class RVC:
+-            from infer.rmvpe import RMVPE
++            from .rmvpe import RMVPE
+@@ -196 +215 @@ class RVC:
+-                "assets/rmvpe/rmvpe.pt",
++                self.rmvpe_path or "assets/rmvpe/rmvpe.pt",
+@@ -209 +228 @@ class RVC:
+-            from infer.fcpe import FCPEInfer
++            from .fcpe import FCPEInfer
+@@ -301 +320 @@ class RVC:
+-        sid = torch.LongTensor([0]).to(self.device)
++        sid = torch.LongTensor([self.speaker_id]).to(self.device)
+diff --git a/tools/__init__.py b/tools/__init__.py
+new file mode 100644
+index 0000000..cb1655c
+--- /dev/null
++++ b/tools/__init__.py
+@@ -0,0 +1 @@
++"""Official RVC runtime tools."""
+diff --git a/tools/cuda_graph.py b/tools/cuda_graph.py
+index 992e7fb..6e0e72c 100644
+--- a/tools/cuda_graph.py
++++ b/tools/cuda_graph.py
+@@ -15 +15,2 @@ _probe_lock = threading.Lock()
+-_probe_result = None
++_probe_results = {}
++_enabled_devices = set()
+@@ -77 +77,0 @@ def configure_cuda_graph(device):
+-    global _probe_result
+@@ -79,6 +79,4 @@ def configure_cuda_graph(device):
+-    if explicit in {"0", "1"}:
+-        if explicit == "0":
+-            return False
+-        if _device_type(device) != "cuda":
+-            os.environ[ENV_NAME] = "0"
+-            return False
++    device_key = str(device)
++    if explicit == "0" or _device_type(device) != "cuda":
++        _enabled_devices.discard(device_key)
++        return False
+@@ -86,4 +84,10 @@ def configure_cuda_graph(device):
+-        if _probe_result is None:
+-            _probe_result = detect_cuda_graph_support(device)
+-        os.environ[ENV_NAME] = "1" if _probe_result else "0"
+-    return bool(_probe_result)
++        if device_key not in _probe_results:
++            _probe_results[device_key] = detect_cuda_graph_support(device)
++        enabled = bool(_probe_results[device_key])
++        if explicit == "1" and not enabled:
++            logger.warning("CUDA Graph was requested but is unavailable on %s", device)
++        if enabled:
++            _enabled_devices.add(device_key)
++        else:
++            _enabled_devices.discard(device_key)
++    return enabled
+@@ -94 +98,2 @@ def cuda_graph_enabled(device):
+-        os.environ.get(ENV_NAME) == "1"
++        os.environ.get(ENV_NAME) != "0"
++        and str(device) in _enabled_devices
+@@ -182 +187,9 @@ class _GraphCache:
+-        output = entry.replay(inputs)
++        try:
++            output = entry.replay(inputs)
++        except Exception:
++            with self.lock:
++                self.entries.pop(signature, None)
++                self.failures.add(signature)
++                self.fallback_count += 1
++            logger.exception("CUDA Graph replay failed for %s; using eager", key)
++            return function(*inputs)

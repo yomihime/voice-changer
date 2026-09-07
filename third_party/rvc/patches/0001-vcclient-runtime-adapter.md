@@ -4,6 +4,10 @@ This file inventories the retained semantic delta because the vendored tree is
 an extracted runtime slice rather than a Git subtree. M3 removed the previously
 listed algorithm extensions.
 
+The corresponding machine-applicable patch is
+`0001-vcclient-runtime-adapter.patch`. Its source paths and hashes are pinned in
+`../vendor-manifest.json`; both files are regenerated and reviewed together.
+
 Files changed from upstream commit `81eed5e8f68b6bed1789f682fe78cdd324495afc`:
 
 - `infer/rtrvc.py`: **keep** package-relative imports, explicit `hubert_path`
@@ -17,7 +21,7 @@ Files changed from upstream commit `81eed5e8f68b6bed1789f682fe78cdd324495afc`:
   `vcclient_official_rvc` namespace.
 - `tools/cuda_graph.py`: **keep** the per-device capability and enabled state,
   backend teardown, and eager fallback. M2 proved switching and ownership
-  safety; M4 makes the import and verification replayable.
+  safety; M4 made the import and verification replayable.
 
 Why the retained items are required: upstream assumes its repository is the
 process working directory, uses generic top-level packages named `infer` and

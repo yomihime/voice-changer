@@ -54,12 +54,34 @@ Legacy / Official のモジュール読み込み、リサンプリング、HTTPS
 - 起動スクリプト、環境チェック、ファイル検証用の `package-manifest.json`
 
 個人モデル、`server/pretrain`、保存済み設定、アップロード、秘密鍵、ローカル作業文書、`.architecture-refactor` は含めません。ライブラリに同梱されたライセンスは実行環境に保持します。
+実行時に不要な ONNX / setuptools のテストデータと Torch の C++ ビルド用
+ヘッダー・CMake ファイルも除外し、通常の Windows 展開先でパス長制限に
+当たらないようにします。ポータブル配布物は C++ 拡張のビルド環境ではありません。
 
 既存の ZIP は上書きしません。出力先を変える場合は次のように指定します。
 
 ```bat
 build-windows.bat --output dist\vcclient-test.zip
 ```
+
+Official RVC の実機受入では、通常のモデルスロットを選択してから次のツールを
+使います。デバイス試験はサーバー側のマイク→変換→出力コールバックを監視し、
+途中で chunk サイズを変更します。LAN 試験は loopback ではなくサーバーの LAN
+アドレスを指定し、複数の PCM shape を実時間ペースで送信します。
+
+```powershell
+python server/tools/soak_rvc_runtime.py device `
+  --duration 600 --json test-output\device-soak.json
+
+python server/tools/soak_rvc_runtime.py `
+  --url http://192.168.1.10:18888 lan `
+  --wav server\test.wav --duration 600 `
+  --json test-output\lan-soak.json
+```
+
+レポートには初回パケット観測、推論回数、P50/P95、エラー、shape 切替、
+CUDA allocated/reserved/peak の推移が保存されます。同一 PC の LAN NIC を使う
+場合だけ `--same-host-lan-interface` を付け、別端末試験と区別してください。
 
 ビルドはソース環境で実行してください。ポータブルパッケージは起動と環境チェックに対応しています。
 

@@ -31,10 +31,34 @@ class DownloadIntegrityTest(unittest.TestCase):
 
 
 class DistributionBoundaryTest(unittest.TestCase):
+    def test_portable_prune_removes_only_build_and_test_payloads(self):
+        with tempfile.TemporaryDirectory() as directory:
+            portable = Path(directory) / "portable"
+            runtime = portable / "Lib/site-packages/torch/torch_cuda.dll"
+            runtime.parent.mkdir(parents=True)
+            runtime.write_text("runtime", encoding="utf-8")
+            for relative in (
+                "Lib/site-packages/onnx/backend/test/data/case.pb",
+                "Lib/site-packages/pkg_resources/tests/data/case.txt",
+                "Lib/site-packages/torch/include/header.h",
+            ):
+                target = portable / relative
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_text("fixture", encoding="utf-8")
+            manage.prune_portable_runtime(portable)
+            self.assertTrue(runtime.is_file())
+            self.assertFalse((portable / "Lib/site-packages/onnx/backend/test").exists())
+            self.assertFalse((portable / "Lib/site-packages/torch/include").exists())
+
     def test_personal_data_is_excluded_from_application_copy(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            keep = {"server/MMVCServerSIO.py", "server/voice_changer/RVC/backend/hybrid.py", "third_party/rvc/LICENSE"}
+            keep = {
+                "server/MMVCServerSIO.py",
+                "server/voice_changer/RVC/backend/hybrid.py",
+                "third_party/rvc/LICENSE",
+                "third_party/rvc/patches/runtime.patch",
+            }
             private = {"server/stored_setting.json", "server/model_dir/0/mia.pth", "server/pretrain/hubert.pt",
                        "server/keys/private.key", "server/upload_dir/input.wav", ".architecture-refactor/notes.md",
                        "Codex任务书.md", "server/voice_changer/RVC/__pycache__/module.pyc"}

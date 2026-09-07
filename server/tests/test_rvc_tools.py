@@ -85,5 +85,46 @@ class BackendBenchmarkToolTest(unittest.TestCase):
         self.assertEqual(rendered_audio, output * 2)
 
 
+class RuntimeSoakToolTest(unittest.TestCase):
+    def test_snapshot_keeps_only_replayable_runtime_evidence(self):
+        tool = _load_tool("soak_rvc_runtime")
+        snapshot = tool._snapshot(
+            {
+                "serverAudioStated": 1,
+                "serverInputDeviceId": 5,
+                "serverOutputDeviceId": 9,
+                "serverReadChunkSize": 32,
+                "inputSampleRate": 44100,
+                "outputSampleRate": 44100,
+                "pipelineInfo": {
+                    "backend": "official",
+                    "ready": True,
+                    "inferenceCount": 123,
+                    "p95InferenceMs": 22.5,
+                    "processCudaAllocatedMiB": 1024,
+                },
+                "serverAudioInputDevices": ["intentionally omitted"],
+            },
+            30.0,
+        )
+        self.assertEqual(snapshot["backend"], "official")
+        self.assertEqual(snapshot["inferenceCount"], 123)
+        self.assertEqual(snapshot["cudaAllocatedMiB"], 1024)
+        self.assertNotIn("serverAudioInputDevices", snapshot)
+
+    def test_vram_summary_reports_growth(self):
+        tool = _load_tool("soak_rvc_runtime")
+        summary = tool._vram_summary(
+            [
+                {"cudaAllocatedMiB": 100.0},
+                {"cudaAllocatedMiB": None},
+                {"cudaAllocatedMiB": 103.5},
+            ]
+        )
+        self.assertEqual(summary["samples"], 2)
+        self.assertEqual(summary["deltaAllocatedMiB"], 3.5)
+        self.assertEqual(summary["maxAllocatedMiB"], 103.5)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -145,13 +145,31 @@ def copy_tree(source, destination):
                     dirs_exist_ok=True)
 
 
+def prune_portable_runtime(portable):
+    """Remove build/test-only payloads that cause long Windows ZIP paths."""
+    portable = Path(portable).resolve()
+    relative_paths = (
+        "Lib/site-packages/onnx/backend/test",
+        "Lib/site-packages/onnx/test",
+        "Lib/site-packages/pkg_resources/tests",
+        "Lib/site-packages/torch/include",
+        "Lib/site-packages/torch/share/cmake",
+    )
+    for relative in relative_paths:
+        target = (portable / relative).resolve()
+        if not target.is_relative_to(portable):
+            raise RuntimeError(f"Portable prune target escaped runtime: {target}")
+        if target.is_dir():
+            shutil.rmtree(target)
+
+
 def application_files():
     """Allowlist application sources; never traverse user model/config folders."""
     files = list((ROOT / "server").glob("*.py"))
     for name in ("data", "downloader", "mods", "restapi", "sio", "voice_changer", "tools"):
         files.extend((ROOT / "server" / name).rglob("*"))
     files.extend((ROOT / "third_party/rvc").rglob("*"))
-    allowed = {".py", ".json", ".txt", ".md", ".yaml", ".yml", ".toml"}
+    allowed = {".py", ".json", ".txt", ".md", ".patch", ".yaml", ".yml", ".toml"}
     return sorted({p for p in files if p.is_file() and not p.is_symlink()
                    and "__pycache__" not in p.parts
                    and (p.suffix.lower() in allowed or p.name in {"LICENSE", "README"})})
@@ -191,6 +209,7 @@ def build(output):
         portable = stage / ".runtime/portable"
         copy_tree(Path(sys.base_prefix), portable)
         copy_tree(Path(sys.prefix) / "Lib/site-packages", portable / "Lib/site-packages")
+        prune_portable_runtime(portable)
         (stage / "server/model_dir").mkdir(exist_ok=True)
         # Test after relocation, before creating the distributable archive.
         run([portable / "python.exe", stage / "scripts/check_environment.py"], cwd=stage / "server")

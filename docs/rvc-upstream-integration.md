@@ -220,8 +220,8 @@ model has also passed direct Official-backend smoke tests on an RTX 5090 D v2:
 RMVPE, FAISS retrieval, eager inference, and CUDA Graph capture/replay all
 produced non-silent 48 kHz output. This external model and its large assets are
 not part of the repository, so source-only CI still cannot repeat that test.
-Audio-quality listening, Legacy/Official REST A/B, LAN mode, and ten-minute
-stability remain manual acceptance gates.
+Audio-quality listening remains a manual acceptance gate; the repeatable M4
+engineering checks below do not make a subjective quality claim.
 
 Shape-specific CUDA Graph capture occurs on the first matching live block.
 Shared HuBERT/RMVPE reuse across different `RVCr2` instances is not yet enabled;
@@ -267,3 +267,54 @@ ownership accounting for one backend. Backend metrics are reset after the
 requested warmup calls, so their percentiles cover the same measured request
 window as the REST statistics. The WAV sample rate must match VCClient's current
 input sample rate.
+
+## M4 Windows end-to-end acceptance (2026-09-07)
+
+The normal model-slot path loaded the same external MIA v2 checkpoint and index
+for both backends on GPU 0. A public `/test` comparison used ten warmups plus
+100 measured 4097-sample requests per backend. Both returned exactly 409,700
+samples. Legacy REST mean/P50/P95 was 99.322/99.257/131.339 ms and backend-local
+mean/P50/P95 was 94.833/94.975/125.454 ms. Official REST was
+19.093/18.367/22.363 ms and backend-local was 14.624/14.027/17.624 ms. These are
+same-host request timings, not acoustic end-to-end latency.
+
+The server-device loop then ran for 600.063 seconds at 44.1 kHz using the
+physical Razer Seiren V3 Mini input and Shanling UA2 output. It completed 6,317
+callback inferences with zero reported errors. A 32→40 read-chunk switch at
+300.360 seconds stayed healthy; final backend P95 was 23.771 ms. CUDA allocated
+memory stayed at 1,138.650 MiB for the first shape, stepped to 1,183.308 MiB on
+the first new-shape capture, and remained flat through the end. A cold follow-up
+observed the first callback within 922 ms, including device open and graph
+capture. Output gain was deliberately zero during the unattended run, so this
+proves the physical input/output stream and callback chain but not listening
+quality.
+
+A separate paced test addressed the server through its non-loopback
+`192.168.50.11` LAN interface for 600.094 seconds. It completed 2,738 requests
+while rotating 12,000, 4,097, and 16,000-sample shapes 23 times. First response
+was 359 ms; mean/P50/P95/max request time was 27.747/31.000/47.000/500.000 ms,
+with zero request errors and zero output-length mismatches. CUDA allocated
+memory reached 1,284.041 MiB while the three graph shapes were captured in the
+first 120 seconds, then remained unchanged for the remaining eight minutes.
+The client used the same computer's LAN NIC, which exercises the bound LAN
+address and HTTP path but is not represented as a second-host network test.
+
+The vendor replay command rebuilt 42 runtime files from upstream commit
+`81eed5e8f68b6bed1789f682fe78cdd324495afc`, verified source SHA-256 values,
+applied `0001-vcclient-runtime-adapter.patch`, and matched the checked-in tree.
+The source checkout had unrelated local changes; use of `git show` kept those
+changes outside the import.
+
+Finally, the Windows CUDA package was rebuilt after removing runtime-irrelevant
+ONNX/setuptools test fixtures and Torch C++ headers/CMake files that caused a
+real WinError 206 extraction failure. The corrected archive is 2,529,037,600
+bytes with SHA-256
+`9488703896c2c0fb1928673d53a6cd308ae513877028a210cdceb74e923d74ec`.
+All 23,017 manifest entries were rehashed after extraction to a long path
+containing spaces. The package includes the vendor manifest, applicable patch,
+upstream license, and soak tool; it excludes user models, settings, keys, and
+pretrain weights as designed. With `PYTHONHOME`/`PYTHONPATH` removed and PATH
+limited to the package plus Windows System32, the relocated runtime passed
+Legacy/Official imports, CUDA/ONNX execution, and an actual `/info` server
+startup on port 18891. This isolates the portable package from system Python;
+it is not a claim of testing on a second physical Windows installation.
