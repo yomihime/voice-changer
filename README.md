@@ -1,4 +1,4 @@
-> この fork を Windows / NVIDIA で使用する場合は、[インストール・起動・パッケージ作成](docs/windows-setup.md)を参照してください。`install-windows.bat`、`start-windows.bat`、`build-windows.bat` を用意しています。
+> この fork を Windows / NVIDIA で使用する場合は、[インストール・起動・パッケージ作成](docs/windows-setup.md)を参照してください。Server とブラウザ Client を一度に開く `start-client-windows.bat` も用意しています。
 
 [日本語](/README.md) /
 [英語](/docs_i18n/README_en.md) /

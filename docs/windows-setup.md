@@ -14,8 +14,8 @@ Python、Anaconda、Node.js、CUDA Toolkit の事前インストールは不要�
 リポジトリを clone するか、ソースコードの ZIP をダウンロードして展開してください。
 
 1. `install-windows.bat` をダブルクリックします。ツールのダウンロードと検証、依存ライブラリのインストール、フロントエンドのビルド、実行環境のチェックを行います。
-2. `start-windows.bat` をダブルクリックします。未インストールの場合は先にインストールを行います。
-3. Chrome でターミナルに表示された `http://localhost:18888/` を開き、モデルを登録します。
+2. `start-client-windows.bat` をダブルクリックします。Server のコンソールを開き、`/info` の準備完了後に既定ブラウザで Client を開きます。未インストールの場合は先にインストールを行います。
+3. Client でモデルを登録します。Server だけを起動したい場合は従来どおり `start-windows.bat` を使用します。
 
 起動後の設定とモデルスロットは従来どおりサーバ側で管理します。既定のバックエンドは Legacy です。
 
@@ -25,6 +25,18 @@ Python、Anaconda、Node.js、CUDA Toolkit の事前インストールは不要�
 start-windows.bat -- -p 18889
 start-windows.bat -- --skip-downloads
 ```
+
+Server と Client を一度に起動する入口には、テスト向けの引数があります。
+
+```bat
+start-client-windows.bat -Port 18889
+start-client-windows.bat -Port 18889 -Lan
+start-client-windows.bat -SkipDownloads -NoBrowser
+```
+
+`-Lan` は Server を `0.0.0.0` に bind しますが、ローカル Client は安全な
+`127.0.0.1` URL で開きます。既に同じポートで VCClient が応答している場合は、
+重複起動せず既存 Client を開きます。`-NoBrowser` は自動試験用です。
 
 通常の初回起動では、既存のサーバ処理に従って共通の推論用ウェイトをダウンロードします。依存ライブラリのインストールとは別の処理です。進行状況はターミナルで確認してください。
 

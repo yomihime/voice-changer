@@ -18,6 +18,17 @@ ROOT = Path(__file__).resolve().parents[1]
 RUNTIME = ROOT / ".runtime"
 LOCK = ROOT / "server/requirements/windows-cuda.lock"
 VERSIONS = json.loads((ROOT / "scripts/runtime-versions.json").read_text(encoding="utf-8"))
+PACKAGE_SUPPORT_FILES = (
+    "start-windows.bat",
+    "start-client-windows.bat",
+    "scripts/windows.ps1",
+    "scripts/start-client.ps1",
+    "scripts/manage.py",
+    "scripts/check_environment.py",
+    "scripts/runtime-versions.json",
+    "server/requirements/windows-cuda.lock",
+    "docs/windows-setup.md",
+)
 
 
 def run(args, *, cwd=ROOT, env=None):
@@ -195,9 +206,7 @@ def build(output):
             target = stage / path.relative_to(ROOT)
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(path, target)
-        for name in ("start-windows.bat", "scripts/windows.ps1", "scripts/manage.py",
-                     "scripts/check_environment.py", "scripts/runtime-versions.json",
-                     "server/requirements/windows-cuda.lock", "docs/windows-setup.md"):
+        for name in PACKAGE_SUPPORT_FILES:
             target = stage / name
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(ROOT / name, target)

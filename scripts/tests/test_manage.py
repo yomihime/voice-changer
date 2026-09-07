@@ -31,6 +31,10 @@ class DownloadIntegrityTest(unittest.TestCase):
 
 
 class DistributionBoundaryTest(unittest.TestCase):
+    def test_client_launcher_is_packaged(self):
+        self.assertIn("start-client-windows.bat", manage.PACKAGE_SUPPORT_FILES)
+        self.assertIn("scripts/start-client.ps1", manage.PACKAGE_SUPPORT_FILES)
+
     def test_portable_prune_removes_only_build_and_test_payloads(self):
         with tempfile.TemporaryDirectory() as directory:
             portable = Path(directory) / "portable"
