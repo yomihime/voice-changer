@@ -19,7 +19,10 @@ module.exports = {
                     {
                         loader: "babel-loader",
                         options: {
-                            presets: ["@babel/preset-env", "@babel/preset-react", "@babel/preset-typescript"],
+                            // Babel 8 でも既存コードの型専用 import を除去する。
+                            // webpack の production ビルドでも Babel の既定 env は development。
+                            // React 本番ランタイムに存在しない jsxDEV を生成しない。
+                            presets: ["@babel/preset-env", ["@babel/preset-react", { development: false }], ["@babel/preset-typescript", { onlyRemoveTypeImports: false }]],
                             plugins: ["@babel/plugin-transform-runtime"],
                         },
                     },

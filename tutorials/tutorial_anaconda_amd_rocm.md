@@ -76,11 +76,11 @@ Now, install PyTorch within the environment:
 pip3 install --force-reinstall torch-2.0.1+rocm5.7-cp310-cp310-linux_x86_64.whl torchvision-0.15.2+rocm5.7-cp310-cp310-linux_x86_64.whl 
 ```
 
-To run the voice changer, install additional dependencies using pip. Navigate to the server directory and use pip to install the requirements.txt file:
+To run the voice changer, install additional dependencies using pip. Navigate to the server directory and use the historical non-Windows requirements file (the Windows CUDA lock is not an ROCm environment):
 
 ```bash
 cd ~/Documents/voicechanger/voice-changer/server
-pip install -r requirements.txt
+pip install -r requirements/legacy-platforms.txt
 ```
 
 ## Start the server

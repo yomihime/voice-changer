@@ -1,6 +1,8 @@
 {
     "compilerOptions": {
         "target": "ES2020",
+        "rootDir": "./src",
+        "types": ["node", "react", "react-dom"],
         "jsx": "react",
         "lib": ["dom"],
 
@@ -16,7 +18,8 @@
         "noImplicitReturns": true,
 
         /* Module解決方法 */
-        "moduleResolution": "node",
+        "module": "ESNext",
+        "moduleResolution": "bundler",
         "esModuleInterop": true,
         "isolatedModules": true,
         "allowSyntheticDefaultImports": true,

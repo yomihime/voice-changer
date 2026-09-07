@@ -129,7 +129,11 @@ Official RVC README, pinned to revision
 `e6d0c1a17da07c33557852f9dfa2bd44cc75737d`; `--rvc_upstream_hubert` remains
 available for offline or custom release layouts.
 
-| Dependency | VCClient before | Official upstream | Stage-one resolution |
+Windows NVIDIA の現行環境は [Windows セットアップ](windows-setup.md) と
+`server/requirements/windows-cuda.lock` を参照してください。以下は初期接続時の
+比較記録であり、現在のインストール用バージョンではありません。
+
+| Dependency | VCClient before | Official upstream | Historical stage-one resolution |
 | --- | --- | --- | --- |
 | Python | historical release runtime | 3.12 x64 | do not force runtime migration in this change |
 | torch / torchaudio | 2.0.1 / 2.0.2 | 2.7.1 CUDA 11.8 or 12.8 | retain VCClient pins; verify newer matrix separately |

@@ -75,7 +75,7 @@ export const useClient = (props: UseClientProps): ClientState => {
     const voiceChangerClientRef = useRef<VoiceChangerClient | null>(null);
     const [voiceChangerClient, setVoiceChangerClient] = useState<VoiceChangerClient | null>(voiceChangerClientRef.current);
     //// クライアント初期化待ち用フラグ
-    const initializedResolveRef = useRef<(value: void | PromiseLike<void>) => void>();
+    const initializedResolveRef = useRef<((value: void | PromiseLike<void>) => void) | undefined>(undefined);
     const initializedPromise = useMemo(() => {
         return new Promise<void>((resolve) => {
             initializedResolveRef.current = resolve;

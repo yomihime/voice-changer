@@ -13,7 +13,8 @@
    selection.
 5. Update repository, commit, commit date, import date, and patch notes in
    `third_party/rvc/UPSTREAM.md`; preserve upstream `LICENSE`.
-6. Compare upstream dependency files with `server/requirements.txt`. Do not
+6. Compare upstream dependency files with `server/requirements/windows-cuda.in`
+   and `server/requirements/windows-cuda.lock` (see [Windows setup](windows-setup.md)). Do not
    install the upstream requirements wholesale. Update the compatibility table
    in `docs/rvc-upstream-integration.md` for every resolution.
 7. Run backend, mapping, device, metadata, and import tests. Then run the normal

@@ -83,7 +83,8 @@ class VoiceChangerManager(ServerDeviceCallbacks):
 
         self.serverDevice = ServerDevice(self)
 
-        thread = threading.Thread(target=self.serverDevice.start, args=())
+        # 常駐デバイスループで、起動失敗後もサーバプロセスを残さない。
+        thread = threading.Thread(target=self.serverDevice.start, args=(), daemon=True)
         thread.start()
 
         # 設定保存用情報

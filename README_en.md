@@ -1,3 +1,5 @@
+> For this fork on Windows / NVIDIA, see [installation, startup and portable packaging](docs/windows-setup.md). Use `install-windows.bat`, `start-windows.bat`, and `build-windows.bat` at the repository root.
+
 ## VC Client
 
 [Japanese](/README_ja.md) [Korean](/README_ko.md) [Russian](/README_ru.md)

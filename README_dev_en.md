@@ -1,3 +1,5 @@
+> Windows / NVIDIA: use the [repository-local installation guide](docs/windows-setup.md). The Linux instructions below describe the historical environment; its dependency pins are preserved in `server/requirements/legacy-platforms.txt`.
+
 ## For Developper
 
 [Japanese](/README_dev_ja.md) [Russian](/README_dev_ru.md)
@@ -28,7 +30,7 @@ $ git clone https://github.com/w-okada/voice-changer.git
 
 ```
 $ cd voice-changer/server
-$ pip install -r requirements.txt
+$ pip install -r requirements/legacy-platforms.txt
 ```
 
 2. Run server

@@ -30,7 +30,7 @@ $ git clone https://github.com/w-okada/voice-changer.git
 
 ```
 $ cd voice-changer/server
-$ pip install -r requirements.txt
+$ pip install -r requirements/legacy-platforms.txt
 ```
 
 2. Запустите сервер

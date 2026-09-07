@@ -70,6 +70,12 @@ start_trainer.sh
 # venv
 venv/
 
+# Repository-local installation and packaging outputs
+/.runtime/
+/.venv/
+/build/
+/dist/
+
 
 beatrice_internal_api.cp310-win_amd64.pyd
 108_average_110b_10.bin

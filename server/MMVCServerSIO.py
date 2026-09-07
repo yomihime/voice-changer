@@ -44,6 +44,9 @@ def setupArgParser():
     parser.add_argument("--logLevel", type=str, default="error", help="Log level info|critical|error. (default: error)")
     parser.add_argument("-p", type=int, default=18888, help="port")
     parser.add_argument("--https", type=strtobool, default=False, help="use https")
+    parser.add_argument("--no-native-client", action="store_true", help="use a browser instead of the optional native client")
+    parser.add_argument("--no-reload", action="store_true", help="disable development autoreload")
+    parser.add_argument("--skip-downloads", action="store_true", help="start with existing resources only (offline/diagnostics)")
     parser.add_argument("--test_connect", type=str, default="8.8.8.8", help="test connect to detect ip in https mode. default 8.8.8.8")
     parser.add_argument("--httpsKey", type=str, default="ssl.key", help="path for the key of https")
     parser.add_argument("--httpsCert", type=str, default="ssl.cert", help="path for the cert of https")
@@ -134,13 +137,14 @@ def localServer(logLevel: str = "critical", key_path: str | None = None, cert_pa
             f"{os.path.basename(__file__)[:-3]}:app_socketio",
             host=HOST,
             port=int(PORT),
-            reload=False if hasattr(sys, "_MEIPASS") else True,
+            reload=not args.no_reload and not hasattr(sys, "_MEIPASS"),
             ssl_keyfile=key_path,
             ssl_certfile=cert_path,
             log_level=logLevel,
         )
     except Exception as e:
         logger.error(f"[Voice Changer] Web Server Launch Exception, {e}")
+        raise
 
 
 if __name__ == "MMVCServerSIO":
@@ -165,14 +169,16 @@ if __name__ == "__main__":
     printMessage("Activating the Voice Changer.", level=2)
     # ダウンロード(Weight)
     try:
-        downloadWeight(voiceChangerParams)
+        if not args.skip_downloads:
+            downloadWeight(voiceChangerParams)
     except WeightDownladException:
         # printMessage("RVC用のモデルファイルのダウンロードに失敗しました。", level=2)
         printMessage("failed to download weight for rvc", level=2)
 
     # ダウンロード(Sample)
     try:
-        downloadInitialSamples(args.sample_mode, args.model_dir)
+        if not args.skip_downloads:
+            downloadInitialSamples(args.sample_mode, args.model_dir)
     except Exception as e:
         printMessage(f"[Voice Changer] loading sample failed {e}", level=2)
 
@@ -255,12 +261,21 @@ if __name__ == "__main__":
             localServer(args.logLevel, key_path, cert_path)
         except Exception as e:
             logger.error(f"[Voice Changer] Web Server(https) Launch Exception, {e}")
+            raise
 
     else:
         p = mp.Process(name="p", target=localServer, args=(args.logLevel,))
         p.start()
         try:
-            if sys.platform.startswith("win"):
+            if args.no_native_client:
+                printMessage(f"Open http://localhost:{PORT}/ in your browser.", level=1)
+                try:
+                    p.join()
+                except KeyboardInterrupt:
+                    p.terminate()
+                    p.join()
+                raise SystemExit(p.exitcode or 0)
+            elif sys.platform.startswith("win"):
                 process = subprocess.Popen([NATIVE_CLIENT_FILE_WIN, "--disable-gpu", "-u", f"http://localhost:{PORT}/"])
                 return_code = process.wait()
                 logger.info("client closed.")

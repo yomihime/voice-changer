@@ -8,8 +8,6 @@ const BeatriceSpeakerType = {
 } as const;
 type BeatriceSpeakerType = (typeof BeatriceSpeakerType)[keyof typeof BeatriceSpeakerType];
 
-// @ts-ignore
-import MyIcon from "./female-clickable.svg";
 import { useGuiState } from "../001_GuiStateProvider";
 export const Portrait = (_props: PortraitProps) => {
     const { serverSetting, volume, bufferingTime, performance, webInfoState, webEdition } = useAppState();

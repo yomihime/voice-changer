@@ -2,6 +2,8 @@
 
 [English](/README_dev_en.md)
 
+Windows / NVIDIA 向けの手順は[専用ガイド](docs/windows-setup.md)を参照してください。以下は従来の Linux / WSL2 環境向けの手順です。
+
 ## 前提
 
 - Linux(ubuntu, debian) or WSL2, (not tested for other linux distributions and Mac)
@@ -28,7 +30,7 @@ $ git clone https://github.com/w-okada/voice-changer.git
 
 ```
 $ cd voice-changer/server
-$ pip install -r requirements.txt
+$ pip install -r requirements/legacy-platforms.txt
 ```
 
 2. サーバを起動する

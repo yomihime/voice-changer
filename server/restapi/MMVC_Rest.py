@@ -75,6 +75,8 @@ class MMVC_Rest:
             )
             app_fastapi.mount("/tmp", StaticFiles(directory=f"{TMP_DIR}"), name="static")
             app_fastapi.mount("/upload_dir", StaticFiles(directory=f"{UPLOAD_DIR}"), name="static")
+            # サンプル未取得の新規・オフライン環境でもモデル登録画面を起動できるようにする。
+            os.makedirs(voiceChangerParams.model_dir, exist_ok=True)
             try:
                 app_fastapi.mount("/model_dir_static", StaticFiles(directory=f"{MODEL_DIR_STATIC}"), name="static")
             except Exception as e:

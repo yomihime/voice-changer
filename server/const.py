@@ -53,6 +53,9 @@ os.makedirs(TMP_DIR, exist_ok=True)
 
 
 def getFrontendPath():
+    configured = os.environ.get("VC_FRONTEND_DIR")
+    if configured:
+        return os.path.abspath(configured)
     frontend_path = os.path.join(sys._MEIPASS, "dist") if hasattr(sys, "_MEIPASS") else "../client/demo/dist"
     return frontend_path
 
