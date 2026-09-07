@@ -330,8 +330,6 @@ class VoiceChangerManager(ServerDeviceCallbacks):
             return
 
     def update_settings(self, key: str, val: str | int | float | bool):
-        self.store_setting(key, val)
-
         if key in self.settings.boolData:
             if val == "true":
                 newVal = True
@@ -357,8 +355,16 @@ class VoiceChangerManager(ServerDeviceCallbacks):
             setattr(self.settings, key, newVal)
 
         self.serverDevice.update_settings(key, val)
+        voice_info = None
         if self.voiceChanger is not None:
-            self.voiceChanger.update_settings(key, val)
+            voice_info = self.voiceChanger.update_settings(key, val)
+
+        persisted_value = val
+        if hasattr(self.settings, key):
+            persisted_value = getattr(self.settings, key)
+        if isinstance(voice_info, dict) and key in voice_info:
+            persisted_value = voice_info[key]
+        self.store_setting(key, persisted_value)
 
         return self.get_info()
 

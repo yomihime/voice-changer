@@ -1,4 +1,5 @@
 import os
+import hashlib
 from concurrent.futures import ThreadPoolExecutor
 
 from downloader.Downloader import download
@@ -12,6 +13,65 @@ RVC_UPSTREAM_ASSET_BASE = (
     "https://huggingface.co/lj1995/VoiceConversionWebUI/resolve/"
     f"{RVC_UPSTREAM_ASSET_REVISION}/hubert_base"
 )
+RVC_UPSTREAM_ASSETS = {
+    "config.json": "0346950779dfb7f9316fa74ed846e2b8a22a08eedfdc5387b73f327cb1a4a7cf",
+    "preprocessor_config.json": "7c1976a680fb7acc757cd36fb08eef878fa36c70b4c9d2d595df9c608bbbbf0e",
+    "pytorch_model.bin": "cc8c20f4b90a520757260197a3ff2505705a7adbd20ad9eeaa4e1a9b38442ef5",
+}
+
+
+def _sha256(path: str) -> str:
+    digest = hashlib.sha256()
+    with open(path, "rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _rvc_upstream_asset_paths(
+    voiceChangerParams: VoiceChangerParams,
+) -> dict[str, str]:
+    return {
+        filename: os.path.join(voiceChangerParams.rvc_upstream_hubert, filename)
+        for filename in RVC_UPSTREAM_ASSETS
+    }
+
+
+def rvcUpstreamAssetsReady(voiceChangerParams: VoiceChangerParams) -> bool:
+    return all(
+        os.path.isfile(path) and _sha256(path) == RVC_UPSTREAM_ASSETS[filename]
+        for filename, path in _rvc_upstream_asset_paths(voiceChangerParams).items()
+    )
+
+
+def rvcUpstreamAssetsPresent(voiceChangerParams: VoiceChangerParams) -> bool:
+    return all(
+        os.path.isfile(path)
+        for path in _rvc_upstream_asset_paths(voiceChangerParams).values()
+    )
+
+
+def ensureRvcUpstreamAssets(voiceChangerParams: VoiceChangerParams) -> None:
+    paths = _rvc_upstream_asset_paths(voiceChangerParams)
+    download_params = [
+        {
+            "url": f"{RVC_UPSTREAM_ASSET_BASE}/{filename}",
+            "saveTo": path,
+            "position": position,
+            "sha256": RVC_UPSTREAM_ASSETS[filename],
+        }
+        for position, (filename, path) in enumerate(paths.items())
+        if not os.path.isfile(path)
+        or _sha256(path) != RVC_UPSTREAM_ASSETS[filename]
+    ]
+    if download_params:
+        try:
+            with ThreadPoolExecutor(max_workers=len(download_params)) as pool:
+                list(pool.map(download, download_params))
+        except Exception as exc:
+            raise WeightDownladException() from exc
+    if not rvcUpstreamAssetsReady(voiceChangerParams):
+        raise WeightDownladException()
 
 
 def downloadWeight(voiceChangerParams: VoiceChangerParams):
@@ -25,15 +85,6 @@ def downloadWeight(voiceChangerParams: VoiceChangerParams):
     rmvpe = voiceChangerParams.rmvpe
     rmvpe_onnx = voiceChangerParams.rmvpe_onnx
     whisper_tiny = voiceChangerParams.whisper_tiny
-    rvc_upstream_hubert_dir = voiceChangerParams.rvc_upstream_hubert
-    rvc_upstream_hubert = [
-        os.path.join(rvc_upstream_hubert_dir, filename)
-        for filename in (
-            "config.json",
-            "preprocessor_config.json",
-            "pytorch_model.bin",
-        )
-    ]
 
     weight_files = [
         content_vec_500_onnx,
@@ -45,7 +96,6 @@ def downloadWeight(voiceChangerParams: VoiceChangerParams):
         crepe_onnx_tiny,
         rmvpe,
         whisper_tiny,
-        *rvc_upstream_hubert,
     ]
 
     # file exists check (currently only for rvc)
@@ -153,25 +203,13 @@ def downloadWeight(voiceChangerParams: VoiceChangerParams):
             }
         )
 
-    for offset, (filename, save_to) in enumerate(
-        zip(
-            ("config.json", "preprocessor_config.json", "pytorch_model.bin"),
-            rvc_upstream_hubert,
-        )
-    ):
-        if os.path.exists(save_to) is False:
-            downloadParams.append(
-                {
-                    "url": f"{RVC_UPSTREAM_ASSET_BASE}/{filename}",
-                    "saveTo": save_to,
-                    "position": 11 + offset,
-                }
-            )
+    try:
+        with ThreadPoolExecutor() as pool:
+            list(pool.map(download, downloadParams))
+    except Exception as exc:
+        raise WeightDownladException() from exc
 
-    with ThreadPoolExecutor() as pool:
-        pool.map(download, downloadParams)
-
-    if os.path.exists(hubert_base) is False or os.path.exists(hubert_base_jp) is False or os.path.exists(hubert_soft) is False or os.path.exists(nsf_hifigan) is False or os.path.exists(nsf_hifigan_config) is False or any(os.path.exists(path) is False for path in rvc_upstream_hubert):
+    if os.path.exists(hubert_base) is False or os.path.exists(hubert_base_jp) is False or os.path.exists(hubert_soft) is False or os.path.exists(nsf_hifigan) is False or os.path.exists(nsf_hifigan_config) is False:
         raise WeightDownladException()
 
     # ファイルサイズをログに書き込む。（デバッグ用）

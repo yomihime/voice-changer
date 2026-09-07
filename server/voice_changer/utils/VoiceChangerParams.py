@@ -18,3 +18,4 @@ class VoiceChangerParams:
     rmvpe_onnx: str
     whisper_tiny: str
     rvc_upstream_hubert: str = "pretrain/rvc-upstream-hubert-base"
+    allow_downloads: bool = True

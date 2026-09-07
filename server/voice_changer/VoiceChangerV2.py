@@ -10,6 +10,7 @@
 """
 
 from typing import Any, Union
+from threading import RLock
 
 from const import TMP_DIR
 import torch
@@ -80,6 +81,7 @@ class VoiceChangerV2(VoiceChangerIF):
 
     def __init__(self, params: VoiceChangerParams):
         # 初期化
+        self._processing_lock = RLock()
         self.settings = VoiceChangerV2Settings()
         self.currentCrossFadeOffsetRate = 0.0
         self.currentCrossFadeEndRate = 0.0
@@ -97,32 +99,43 @@ class VoiceChangerV2(VoiceChangerIF):
         logger.info(f"VoiceChangerV2 Initialized (GPU_NUM(cuda):{self.gpu_num}, mps_enabled:{self.mps_enabled}, onnx_device:{self.onnx_device})")
 
     def setModel(self, model: VoiceChangerModel):
-        self.voiceChanger = model
-        self.voiceChanger.setSamplingRate(self.settings.inputSampleRate, self.settings.outputSampleRate)
-        # if model.voiceChangerType == "Beatrice" or model.voiceChangerType == "LLVC":
-        if model.voiceChangerType == "Beatrice":
-            self.noCrossFade = True
-        else:
-            self.noCrossFade = False
+        with self._processing_lock:
+            self.voiceChanger = model
+            self.voiceChanger.setSamplingRate(self.settings.inputSampleRate, self.settings.outputSampleRate)
+            # if model.voiceChangerType == "Beatrice" or model.voiceChangerType == "LLVC":
+            if model.voiceChangerType == "Beatrice":
+                self.noCrossFade = True
+            else:
+                self.noCrossFade = False
+            self._reset_output_state()
 
     def setInputSampleRate(self, sr: int):
-        self.settings.inputSampleRate = sr
-        self.voiceChanger.setSamplingRate(self.settings.inputSampleRate, self.settings.outputSampleRate)
+        with self._processing_lock:
+            self.settings.inputSampleRate = sr
+            self.voiceChanger.setSamplingRate(self.settings.inputSampleRate, self.settings.outputSampleRate)
+            self._reset_output_state()
 
     def setOutputSampleRate(self, sr: int):
-        self.settings.outputSampleRate = sr
-        self.voiceChanger.setSamplingRate(self.settings.inputSampleRate, self.settings.outputSampleRate)
+        with self._processing_lock:
+            self.settings.outputSampleRate = sr
+            self.voiceChanger.setSamplingRate(self.settings.inputSampleRate, self.settings.outputSampleRate)
+            self._reset_output_state()
 
     def get_info(self):
-        data = asdict(self.settings)
-        if self.voiceChanger is not None:
-            data.update(self.voiceChanger.get_info())
-        return data
+        with self._processing_lock:
+            data = asdict(self.settings)
+            if self.voiceChanger is not None:
+                data.update(self.voiceChanger.get_info())
+            return data
 
     def get_performance(self):
         return self.settings.performance
 
     def update_settings(self, key: str, val: Any):
+        with self._processing_lock:
+            return self._update_settings(key, val)
+
+    def _update_settings(self, key: str, val: Any):
         if self.voiceChanger is None:
             logger.warn("[Voice Changer] Voice Changer is not selected.")
             return self.get_info()
@@ -162,10 +175,15 @@ class VoiceChangerV2(VoiceChangerIF):
             setattr(self.settings, key, str(val))
         else:
             ret = self.voiceChanger.update_settings(key, val)
-            if ret is False:
-                pass
-                # print(f"({key} is not mutable variable or unknown variable)")
+            if ret is True and key in {"gpu", "rvcBackend"}:
+                self._reset_output_state()
         return self.get_info()
+
+    def _reset_output_state(self) -> None:
+        if hasattr(self, "np_prev_audio1"):
+            delattr(self, "np_prev_audio1")
+        if hasattr(self, "sola_buffer"):
+            del self.sola_buffer
 
     def _generate_strength(self, crossfadeSize: int):
         if self.crossfadeSize != crossfadeSize or self.currentCrossFadeOffsetRate != self.settings.crossFadeOffsetRate or self.currentCrossFadeEndRate != self.settings.crossFadeEndRate or self.currentCrossFadeOverlapSize != self.settings.crossFadeOverlapSize:
@@ -213,6 +231,10 @@ class VoiceChangerV2(VoiceChangerIF):
 
     #  receivedData: tuple of short
     def on_request(self, receivedData: AudioInOut) -> tuple[AudioInOut, list[Union[int, float]]]:
+        with self._processing_lock:
+            return self._on_request(receivedData)
+
+    def _on_request(self, receivedData: AudioInOut) -> tuple[AudioInOut, list[Union[int, float]]]:
         try:
             if self.voiceChanger is None:
                 raise VoiceChangerIsNotSelectedException("Voice Changer is not selected.")
@@ -346,7 +368,8 @@ class VoiceChangerV2(VoiceChangerIF):
             return np.zeros(1).astype(np.int16), [0, 0, 0]
 
     def export2onnx(self):
-        return self.voiceChanger.export2onnx()
+        with self._processing_lock:
+            return self.voiceChanger.export2onnx()
 
         ##############
 

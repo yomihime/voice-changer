@@ -129,6 +129,14 @@ Official RVC README, pinned to revision
 `e6d0c1a17da07c33557852f9dfa2bd44cc75737d`; `--rvc_upstream_hubert` remains
 available for offline or custom release layouts.
 
+Official-only HuBERT files are no longer part of the unconditional server
+startup download. When Official is selected, the default pinned files are
+downloaded on demand with connection/read timeouts, HTTP status checks,
+SHA-256 verification, and atomic replacement. `--skip-downloads` disables this
+behavior, and a complete custom `--rvc_upstream_hubert` directory is accepted
+without replacing its contents. A missing or invalid Official resource leaves
+the previously ready backend selected and reports `backendError`.
+
 Windows NVIDIA の現行環境は [Windows セットアップ](windows-setup.md) と
 `server/requirements/windows-cuda.lock` を参照してください。Official の WebUI
 全体ではなく vendored runtime slice だけをホスト環境で動かすため、上流の
@@ -191,8 +199,14 @@ owns the remaining lifecycle correction.
 Backend exceptions distinguish configuration, model, index, device, inference,
 and CUDA Graph failures. Full tracebacks remain in server logs; `backendError`
 in server info carries the human-readable initialization error. Selecting
-Official never silently falls back to Legacy. The user can explicitly select
-Legacy again.
+Official never silently falls back to Legacy. Backend and GPU changes are
+transactional: the previous model is released under the lifecycle lock to avoid
+double VRAM allocation, and a candidate must load and warm before the new
+setting becomes visible. On failure the previous backend is rebuilt, the
+requested setting is not persisted, and `backendError` describes the failed
+request. Model inference, backend/device replacement, sampling-rate changes, and outer
+SOLA/crossfade state reset share lifecycle locks so an in-flight block cannot
+observe partially released resources.
 
 ## Validation boundaries and current limitations
 

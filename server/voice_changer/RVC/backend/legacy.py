@@ -40,6 +40,7 @@ class LegacyRvcBackend:
         self.pitchf_buffer = None
         self.feature_buffer = None
         self.prev_vol = 0.0
+        self._ready = False
         self.metrics = RollingInferenceMetrics()
         self.device_manager = DeviceManager.get_instance()
         EmbedderManager.initialize(config.params)
@@ -47,6 +48,7 @@ class LegacyRvcBackend:
 
     def load_model(self) -> None:
         logger.info("[Voice Changer][RVC Backend] Loading Legacy backend")
+        self._ready = False
         try:
             self.pipeline = createPipeline(
                 self.config.params,
@@ -62,12 +64,15 @@ class LegacyRvcBackend:
         logger.info("[Voice Changer][RVC Backend] Legacy backend ready")
 
     def unload_model(self) -> None:
+        self._ready = False
         self.pipeline = None
         self._reset_stream_state()
 
     def warmup(self) -> None:
         # The legacy managers eagerly load their model components in createPipeline.
-        return
+        if self.pipeline is None:
+            raise PipelineNotInitializedException()
+        self._ready = True
 
     def _reset_stream_state(self) -> None:
         self.audio_buffer = None
@@ -82,6 +87,8 @@ class LegacyRvcBackend:
     def set_device(self, gpu: int) -> None:
         self.device_manager.setForceTensor(False)
         self.load_model()
+        self.set_sampling_rate(self.input_sample_rate, self.output_sample_rate)
+        self.warmup()
 
     def update_settings(self, key: str, value: int | float | str) -> None:
         if key == "gpu":
@@ -180,7 +187,7 @@ class LegacyRvcBackend:
             self.metrics.record((perf_counter() - started) * 1000.0)
 
     def _infer(self, request: RvcInferenceRequest) -> np.ndarray:
-        if self.pipeline is None:
+        if not self._ready or self.pipeline is None:
             raise PipelineNotInitializedException()
 
         received_data = cast(
@@ -267,7 +274,7 @@ class LegacyRvcBackend:
                 else cuda_memory_snapshot(torch.device("cpu"))
             ),
             "backend": self.name,
-            "ready": self.pipeline is not None,
+            "ready": self._ready,
             "device": device,
         }
 

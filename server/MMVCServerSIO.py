@@ -121,6 +121,7 @@ voiceChangerParams = VoiceChangerParams(
     sample_mode=args.sample_mode,
     whisper_tiny=args.whisper_tiny,
     rvc_upstream_hubert=args.rvc_upstream_hubert,
+    allow_downloads=not args.skip_downloads,
 )
 vcparams = VoiceChangerParamsManager.get_instance()
 vcparams.setParams(voiceChangerParams)

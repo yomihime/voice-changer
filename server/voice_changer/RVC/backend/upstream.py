@@ -9,6 +9,10 @@ import resampy
 import torch
 
 from mods.log_control import VoiceChangaerLogger
+from downloader.WeightDownloader import (
+    ensureRvcUpstreamAssets,
+    rvcUpstreamAssetsPresent,
+)
 from voice_changer.RVC.backend.base import RvcBackendConfig, RvcInferenceRequest
 from voice_changer.RVC.backend.device import resolve_torch_device
 from voice_changer.RVC.backend.config_mapping import (
@@ -56,6 +60,7 @@ class UpstreamRvcBackend:
         self.output_sample_rate = 48000
         self.input_buffer: torch.Tensor | None = None
         self._buffer_shape: tuple[int, int] | None = None
+        self._ready = False
         self.metrics = RollingInferenceMetrics()
 
     @property
@@ -78,6 +83,7 @@ class UpstreamRvcBackend:
         validate_upstream_f0(method, self.config.slot.f0)
 
     def load_model(self) -> None:
+        self._ready = False
         if self.config.slot.isONNX:
             raise RvcBackendConfigError(
                 "Official backend supports PyTorch .pth RVC models only"
@@ -87,11 +93,19 @@ class UpstreamRvcBackend:
         if not model_path.is_file():
             raise RvcModelLoadError(f"RVC model not found: {model_path}")
         hubert_path = self._hubert_path()
-        if not (hubert_path / "config.json").is_file():
-            raise RvcModelLoadError(
-                "Official Transformers HuBERT assets are missing: "
-                f"{hubert_path}. See docs/rvc-upstream-integration.md"
-            )
+        if not rvcUpstreamAssetsPresent(self.config.params):
+            if not getattr(self.config.params, "allow_downloads", True):
+                raise RvcModelLoadError(
+                    "Official Transformers HuBERT assets are missing and downloads "
+                    f"are disabled: {hubert_path}"
+                )
+            try:
+                ensureRvcUpstreamAssets(self.config.params)
+            except Exception as exc:
+                raise RvcModelLoadError(
+                    "Unable to prepare Official Transformers HuBERT assets: "
+                    f"{exc}"
+                ) from exc
 
         self.device = resolve_torch_device(self.settings.gpu)
         gpu_name = (
@@ -159,6 +173,7 @@ class UpstreamRvcBackend:
         )
 
     def warmup(self) -> None:
+        self._ready = False
         if self.engine is None:
             raise RvcModelLoadError("Official RVC backend is not loaded")
         logger.info("[Voice Changer][RVC Backend] Official warming up")
@@ -186,6 +201,7 @@ class UpstreamRvcBackend:
             UPSTREAM_COMMIT[:12],
             self.device,
         )
+        self._ready = True
 
     def _reset_stream_state(self) -> None:
         self.input_buffer = None
@@ -195,6 +211,7 @@ class UpstreamRvcBackend:
             self.engine.cache_pitchf.zero_()
 
     def unload_model(self) -> None:
+        self._ready = False
         engine = self.engine
         self.engine = None
         self._reset_stream_state()
@@ -221,6 +238,8 @@ class UpstreamRvcBackend:
         previous = self.device
         self.unload_model()
         self.load_model()
+        self.set_sampling_rate(self.input_sample_rate, self.output_sample_rate)
+        self.warmup()
         logger.info(
             "[Voice Changer][RVC Backend] Official moved: %s -> %s",
             previous,
@@ -228,8 +247,8 @@ class UpstreamRvcBackend:
         )
 
     def update_settings(self, key: str, value: int | float | str) -> None:
-        if self.engine is None:
-            return
+        if not self._ready or self.engine is None:
+            raise RvcBackendConfigError("Official RVC backend is not ready")
         if key == "gpu":
             self.set_device(int(value))
         elif key == "indexRatio":
@@ -261,7 +280,7 @@ class UpstreamRvcBackend:
             self.metrics.record((perf_counter() - started) * 1000.0)
 
     def _infer(self, request: RvcInferenceRequest) -> np.ndarray:
-        if self.engine is None:
+        if not self._ready or self.engine is None:
             raise RvcInferenceError("Official RVC backend is not ready")
         self._validate_f0_method(self.settings.f0Detector)
 
@@ -345,7 +364,7 @@ class UpstreamRvcBackend:
             **self.metrics.snapshot(),
             **cuda_memory_snapshot(self.device),
             "backend": self.name,
-            "ready": self.engine is not None,
+            "ready": self._ready,
             "upstreamCommit": UPSTREAM_COMMIT,
             "device": str(self.device),
             "gpuName": gpu_name,

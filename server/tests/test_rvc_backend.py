@@ -1,4 +1,5 @@
 import sys
+import threading
 import unittest
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
@@ -13,7 +14,11 @@ from voice_changer.RVC.backend.config_mapping import (
     validate_upstream_f0,
 )
 from voice_changer.RVC.backend.device import resolve_torch_device
-from voice_changer.RVC.backend.exceptions import RvcBackendConfigError, RvcDeviceError
+from voice_changer.RVC.backend.exceptions import (
+    RvcBackendConfigError,
+    RvcDeviceError,
+    RvcModelLoadError,
+)
 from voice_changer.RVC.backend.model_info import model_info_from_checkpoint
 from voice_changer.RVC.backend.metrics import RollingInferenceMetrics
 from voice_changer.RVC.backend.upstream_loader import load_upstream_module
@@ -70,6 +75,134 @@ class RvcHostBoundaryTest(unittest.TestCase):
             official.load_model.assert_called_once()
             self.assertEqual(host.settings.rvcBackend, "official")
             self.assertEqual(host.settings.f0Detector, "rmvpe")
+
+    def test_failed_backend_switch_keeps_previous_ready_backend(self):
+        legacy = Mock(name="legacy")
+        legacy.name = "legacy"
+        legacy.get_model_info.return_value = {"ready": True}
+        official = Mock(name="official")
+        official.name = "official"
+        official.load_model.side_effect = RvcModelLoadError("missing asset")
+        recovered = Mock(name="recovered")
+        recovered.name = "legacy"
+        recovered.get_model_info.return_value = {"ready": True}
+        params = SimpleNamespace(model_dir="models")
+        slot = RVCModelSlot(samplingRate=48000)
+
+        with patch(
+            "voice_changer.RVC.RVCr2.create_rvc_backend",
+            side_effect=[legacy, official, recovered],
+        ):
+            from voice_changer.RVC.RVCr2 import RVCr2
+
+            host = RVCr2(params, slot)
+            self.assertFalse(host.update_settings("rvcBackend", "official"))
+
+        self.assertIs(host.backend, recovered)
+        self.assertEqual(host.settings.rvcBackend, "legacy")
+        self.assertEqual(host.lastBackendError, "missing asset")
+        legacy.close.assert_called_once()
+        official.close.assert_called_once()
+        recovered.warmup.assert_called_once()
+
+    def test_failed_gpu_rebuild_can_be_retried(self):
+        current = Mock(name="current")
+        current.name = "legacy"
+        current.get_model_info.return_value = {"ready": True}
+        failed = Mock(name="failed")
+        failed.name = "legacy"
+        failed.load_model.side_effect = RvcDeviceError("invalid gpu")
+        rollback = Mock(name="rollback")
+        rollback.name = "legacy"
+        rollback.get_model_info.return_value = {"ready": True}
+        recovered = Mock(name="recovered")
+        recovered.name = "legacy"
+        recovered.get_model_info.return_value = {"ready": True}
+        params = SimpleNamespace(model_dir="models")
+        slot = RVCModelSlot(samplingRate=48000)
+
+        with patch(
+            "voice_changer.RVC.RVCr2.create_rvc_backend",
+            side_effect=[current, failed, rollback, recovered],
+        ):
+            from voice_changer.RVC.RVCr2 import RVCr2
+
+            host = RVCr2(params, slot)
+            self.assertFalse(host.update_settings("gpu", 0))
+            self.assertIs(host.backend, rollback)
+            self.assertEqual(host.settings.gpu, -9999)
+            self.assertTrue(host.update_settings("gpu", 0))
+
+        self.assertIs(host.backend, recovered)
+        self.assertEqual(host.settings.gpu, 0)
+        recovered.warmup.assert_called_once()
+        current.close.assert_called_once()
+        rollback.close.assert_called_once()
+
+    def test_warmup_failure_is_not_reported_ready(self):
+        backend = Mock()
+        backend.name = "legacy"
+        backend.warmup.side_effect = RvcModelLoadError("warmup failed")
+        backend.get_model_info.return_value = {"ready": False}
+        params = SimpleNamespace(model_dir="models")
+        slot = RVCModelSlot(samplingRate=48000)
+
+        with patch(
+            "voice_changer.RVC.RVCr2.create_rvc_backend", return_value=backend
+        ):
+            from voice_changer.RVC.RVCr2 import RVCr2
+
+            host = RVCr2(params, slot)
+            self.assertFalse(host.initialize())
+
+        backend.close.assert_called_once()
+        self.assertFalse(host.get_info()["pipelineInfo"]["ready"])
+        self.assertEqual(host.lastBackendError, "warmup failed")
+
+    def test_backend_switch_waits_for_inflight_inference(self):
+        entered = threading.Event()
+        release = threading.Event()
+        replacement_started = threading.Event()
+        current = Mock(name="current")
+        current.name = "legacy"
+        current.get_model_info.return_value = {"ready": True}
+        current.infer.side_effect = lambda _request: (
+            entered.set(),
+            release.wait(2),
+            np.zeros(480, dtype=np.int16),
+        )[-1]
+        replacement = Mock(name="replacement")
+        replacement.name = "official"
+        replacement.load_model.side_effect = replacement_started.set
+        params = SimpleNamespace(model_dir="models")
+        slot = RVCModelSlot(samplingRate=48000)
+
+        with patch(
+            "voice_changer.RVC.RVCr2.create_rvc_backend",
+            side_effect=[current, replacement],
+        ):
+            from voice_changer.RVC.RVCr2 import RVCr2
+
+            host = RVCr2(params, slot)
+            inference = threading.Thread(
+                target=host.inference,
+                args=(np.zeros(480, dtype=np.int16), 0, 0),
+            )
+            switching = threading.Thread(
+                target=host.update_settings,
+                args=("rvcBackend", "official"),
+            )
+            inference.start()
+            self.assertTrue(entered.wait(1))
+            switching.start()
+            self.assertFalse(replacement_started.wait(0.1))
+            release.set()
+            inference.join(2)
+            switching.join(2)
+
+        self.assertFalse(inference.is_alive())
+        self.assertFalse(switching.is_alive())
+        self.assertTrue(replacement_started.is_set())
 
 
 class ConfigMappingTest(unittest.TestCase):
