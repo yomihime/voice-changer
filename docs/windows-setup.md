@@ -38,6 +38,39 @@ start-client-windows.bat -SkipDownloads -NoBrowser
 `127.0.0.1` URL で開きます。既に同じポートで VCClient が応答している場合は、
 重複起動せず既存 Client を開きます。`-NoBrowser` は自動試験用です。
 
+## Windows Server GUI
+
+`server-gui-windows.bat` をダブルクリックすると、CLI とは独立した Windows
+専用の Server コントロールを開きます。新しい Python パッケージは不要で、
+Windows PowerShell と WinForms を使用します。
+
+- Server の Start / Stop と Running / Starting / exit code 表示
+- port 番号と Local only / LAN bind の選択
+- weight download の skip と、準備完了時の Client 自動表示
+- Client を開く、URL をコピー、Server stdout/stderr の末尾表示、log folder を開く
+- 設定の保存（`.runtime/server-gui/settings.json`）
+- 最小化または閉じる操作で task tray に格納
+- tray menu から Show / Open Client / Start / Stop / Exit
+- 使用中 port の起動防止と、終了時の Server process tree 停止
+
+GUI が起動する Server は `scripts/windows.ps1 -Action start` と同じ経路です。
+`start-windows.bat`、`scripts/windows.ps1`、`scripts/manage.py start` は変更せず、
+自動化や詳細な引数には引き続き CLI を使用できます。GUI の依存確認だけを行う
+場合は次を実行します。
+
+```powershell
+powershell.exe -NoProfile -STA -ExecutionPolicy Bypass `
+  -File scripts\server-gui.ps1 -SelfTest
+```
+
+GUI と同じ非表示 child-process 経路で Server の起動、ready、process-tree 停止を
+自動確認する場合は、未使用 port を指定します。
+
+```powershell
+powershell.exe -NoProfile -STA -ExecutionPolicy Bypass `
+  -File scripts\server-gui.ps1 -AutomationTest -AutomationPort 18893
+```
+
 通常の初回起動では、既存のサーバ処理に従って共通の推論用ウェイトをダウンロードします。依存ライブラリのインストールとは別の処理です。進行状況はターミナルで確認してください。
 
 `--skip-downloads` は、必要なウェイトを用意済みのオフライン環境や起動確認で使用します。ウェイトが不足している場合は推論できません。LAN 接続では、従来の HTTPS と allowed-origins の設定を使用してください。

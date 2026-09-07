@@ -35,6 +35,10 @@ class DistributionBoundaryTest(unittest.TestCase):
         self.assertIn("start-client-windows.bat", manage.PACKAGE_SUPPORT_FILES)
         self.assertIn("scripts/start-client.ps1", manage.PACKAGE_SUPPORT_FILES)
 
+    def test_server_gui_is_packaged(self):
+        self.assertIn("server-gui-windows.bat", manage.PACKAGE_SUPPORT_FILES)
+        self.assertIn("scripts/server-gui.ps1", manage.PACKAGE_SUPPORT_FILES)
+
     def test_portable_prune_removes_only_build_and_test_payloads(self):
         with tempfile.TemporaryDirectory() as directory:
             portable = Path(directory) / "portable"

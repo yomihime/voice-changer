@@ -21,8 +21,10 @@ VERSIONS = json.loads((ROOT / "scripts/runtime-versions.json").read_text(encodin
 PACKAGE_SUPPORT_FILES = (
     "start-windows.bat",
     "start-client-windows.bat",
+    "server-gui-windows.bat",
     "scripts/windows.ps1",
     "scripts/start-client.ps1",
+    "scripts/server-gui.ps1",
     "scripts/manage.py",
     "scripts/check_environment.py",
     "scripts/runtime-versions.json",
