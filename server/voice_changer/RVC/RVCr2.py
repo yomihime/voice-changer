@@ -164,6 +164,12 @@ class RVCr2(VoiceChangerModel):
             else:
                 return False
 
+            if not self.backend.supports_setting(key):
+                self.lastBackendError = (
+                    f"{self.backend.name} backend does not support setting {key}"
+                )
+                return False
+
             old_value = getattr(self.settings, key)
             if key == "gpu":
                 if value == old_value and self.backend.get_model_info().get("ready"):

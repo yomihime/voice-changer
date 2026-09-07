@@ -70,7 +70,7 @@ export const QualityArea = (props: QualityAreaProps) => {
             </div>
         );
 
-        const threshold = webEdition ? (
+        const threshold = webEdition || serverSetting.serverSetting.rvcBackend === "official" ? (
             <></>
         ) : (
             <div className="config-sub-area-control">

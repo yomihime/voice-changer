@@ -165,6 +165,7 @@ export type VoiceChangerServerSetting = {
         device?: string;
         gpuName?: string;
         upstreamCommit?: string;
+        supportedSettings?: string[];
         meanInferenceMs?: number | null;
         [key: string]: unknown;
     };

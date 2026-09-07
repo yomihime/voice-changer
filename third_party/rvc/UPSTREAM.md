@@ -25,11 +25,11 @@ be read as a claim that every current change is required:
 - constructor failures re-raised so the Adapter can translate them into
   backend errors instead of leaving a partially initialized object.
 
-Per-device CUDA Graph ownership remains a provisional host-lifecycle patch and
-must be verified in M2/M4. The locally added realtime protect blend, forced
-FAISS `nprobe`, and related retrieval-policy changes are scheduled for removal
-in M3 because they change the pinned upstream realtime algorithm. The adapter's
-silence and output-volume behavior is tracked separately in
+Per-device CUDA Graph ownership remains a host-lifecycle patch and must be
+verified again in M4. M3 removed the former realtime protect blend, forced
+FAISS `nprobe`, and retrieval-error policy changes; the vendored search and
+feature path now follows the pinned upstream algorithm. Host chunk framing and
+PCM unit conversion remain outside this vendor directory and are documented in
 `docs/rvc-upstream-integration.md`.
 
 No VCClient audio-device, network, UI, model-slot, or stream-stitching code is

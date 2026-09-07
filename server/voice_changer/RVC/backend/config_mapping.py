@@ -22,8 +22,6 @@ def apply_upstream_runtime_setting(
         engine.change_index_rate(float(value))
     elif key == "dstId":
         engine.change_speaker_id(int(value))
-    elif key == "protect":
-        engine.change_protect(float(value))
     else:
         return False
     return True

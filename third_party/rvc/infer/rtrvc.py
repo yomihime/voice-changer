@@ -68,7 +68,6 @@ class RVC:
         hubert_path=None,
         rmvpe_path=None,
         speaker_id=0,
-        protect=0.5,
     ) :
         """
         初始化
@@ -87,8 +86,6 @@ class RVC:
             self.is_half = config.is_half
             if index_rate != 0:
                 self.index = faiss.read_index(index_path)
-                if hasattr(self.index, "nprobe") and hasattr(self.index, "nlist"):
-                    self.index.nprobe = min(8, self.index.nlist)
                 self.big_npy = self.index.reconstruct_n(0, self.index.ntotal)
                 printt(i18n("已启用索引检索"))
             self.pth_path = pth_path
@@ -97,7 +94,6 @@ class RVC:
             self.hubert_path = hubert_path
             self.rmvpe_path = rmvpe_path
             self.speaker_id = int(speaker_id)
-            self.protect = float(protect)
             self.cache_pitch = torch.zeros(
                 1024, device=self.device, dtype=torch.long
             )
@@ -156,11 +152,10 @@ class RVC:
     def change_index_rate(self, new_index_rate):
         if new_index_rate != 0 and self.index_rate == 0:
             self.index = faiss.read_index(self.index_path)
-            if hasattr(self.index, "nprobe") and hasattr(self.index, "nlist"):
-                self.index.nprobe = min(8, self.index.nlist)
             self.big_npy = self.index.reconstruct_n(0, self.index.ntotal)
             printt(i18n("已启用索引检索"))
         self.index_rate = new_index_rate
+
     def change_speaker_id(self, new_speaker_id):
         speaker_id = int(new_speaker_id)
         if speaker_id < 0 or speaker_id >= self.n_spk:
@@ -168,8 +163,6 @@ class RVC:
                 f"Speaker id {speaker_id} is outside model range 0..{self.n_spk - 1}"
             )
         self.speaker_id = speaker_id
-    def change_protect(self, new_protect):
-        self.protect = float(new_protect)
 
     def get_f0_post(self, f0):
         if not torch.is_tensor(f0):
@@ -274,9 +267,7 @@ class RVC:
             feats = torch.cat((feats, feats[:, -1:, :]), 1)
         t2 = ttime()
         try:
-            search_index = hasattr(self, "index") and self.index_rate != 0
-            if search_index:
-                feats0 = feats.clone()
+            if hasattr(self, "index") and self.index_rate != 0:
                 npy = feats[0][skip_head // 2 :].cpu().numpy().astype("float32")
                 score, ix = self.index.search(npy, k=8)
                 if (ix >= 0).all():
@@ -293,16 +284,15 @@ class RVC:
                         + (1 - self.index_rate) * feats[0][skip_head // 2 :]
                     )
                 else:
-                    raise ValueError(
+                    printt(
                         i18n("索引无效：必须使用added_xxxx.index，不能使用trained_xxxx.index")
                     )
             else:
                 if report_status:
                     printt(i18n("索引检索失败或未启用"))
-        except Exception as exc:
+        except Exception:
             traceback.print_exc()
             printt(i18n("索引检索失败"))
-            raise RuntimeError(i18n("索引检索失败")) from exc
         t3 = ttime()
         p_len = input_wav.shape[0] // 160
         factor = pow(2, self.formant_shift / 12)
@@ -326,16 +316,6 @@ class RVC:
         t4 = ttime()
         feats = F.interpolate(feats.permute(0, 2, 1), scale_factor=2).permute(0, 2, 1)
         feats = feats[:, :p_len, :]
-        if self.protect < 0.5 and search_index and self.if_f0 == 1:
-            feats0 = F.interpolate(
-                feats0.permute(0, 2, 1), scale_factor=2
-            ).permute(0, 2, 1)[:, :p_len, :]
-            pitchff = cache_pitchf.clone()
-            pitchff[pitchff > 0] = 1
-            pitchff[pitchff < 1] = self.protect
-            pitchff = pitchff.unsqueeze(-1)
-            feats = feats * pitchff + feats0 * (1 - pitchff)
-            feats = feats.to(feats0.dtype)
         p_len_tensor = torch.LongTensor([p_len]).to(self.device)
         sid = torch.LongTensor([self.speaker_id]).to(self.device)
         skip_head_value = int(skip_head)

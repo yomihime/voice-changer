@@ -81,7 +81,7 @@ precision, and CUDA Graph result; it does not instantiate upstream's global
 | --- | --- |
 | `tran` | `RVC.change_key` / `f0_up_key` |
 | `indexRatio` | `RVC.change_index_rate` / `index_rate` |
-| `protect` | downstream-exposed official feature-protect blend |
+| `protect` | unsupported by the pinned Official realtime entry point; rejected and hidden while Official is active |
 | `gpu=N` | exact `torch.device("cuda:N")`; invalid ids fail visibly |
 | `gpu<0` | `torch.device("cpu")` |
 | `dstId` | realtime synthesizer speaker tensor |
@@ -105,12 +105,16 @@ Device/client PCM (input SR, int16)
   -> device/client output
 ```
 
-The Official adapter maintains only model context: the rolling 16 kHz input
-window and upstream pitch caches. `block_frame_16k` is the current resampled
-block, `skip_head` is VCClient's extra context in 10 ms frames, and
-`return_length` covers the current block plus VCClient crossfade and SOLA search
-regions. Official GUI denoise, device streams, output SOLA, and monitor logic
-are not used, so there is only one final stitch/crossfade stage.
+The Official adapter maintains the rolling 16 kHz model window, upstream pitch
+caches, and at most one 10 ms frame of host-boundary latency. Arbitrary host
+chunks are accumulated into complete 160-sample frames before calling upstream,
+so audio-window advancement and pitch-cache advancement remain identical. A
+small output queue returns the exact host-requested sample count at 44.1 or
+48 kHz, while prior emitted samples provide the requested SOLA/crossfade
+context. `skip_head` is VCClient's extra context in 10 ms frames and
+`return_length` is the complete block passed to upstream. Official GUI denoise,
+device streams, output SOLA, and monitor logic are not used, so there is only
+one final stitch/crossfade stage.
 
 The first implementation resamples on CPU for correctness and moves one tensor
 to the selected device. Copy/resample optimization is deferred until profiling
@@ -171,13 +175,13 @@ that all current differences are already correct.
 | --- | --- | --- |
 | Package-relative imports and package `__init__.py` files | Keep as required embedding adaptation | Vendor boundary; avoids `sys.path`, `os.chdir`, and generic `infer`/`tools` collisions. |
 | Explicit HuBERT and RMVPE resource paths | Keep as required embedding adaptation | Adapter supplies host-owned paths; no process working-directory dependency. |
-| Constructor and retrieval failures re-raised | Keep as required error adaptation | Adapter translates failures into typed backend errors. |
+| Constructor failures re-raised | Keep as required error adaptation | Adapter translates initialization failures into typed backend errors. Retrieval behavior remains identical to upstream. |
 | Realtime speaker id instead of upstream's fixed speaker zero | Keep as required model-slot adaptation | VCClient already exposes `dstId`; validate the checkpoint range before inference. |
 | Per-device CUDA Graph enablement, teardown, and replay fallback | Keep provisionally as host lifecycle adaptation | M2 must verify device switching and resource release; M4 must cover replayable tests. |
-| Realtime `protect` feature blending added to `infer/rtrvc.py` | Remove from Official | It is not exposed by the pinned upstream realtime entry point. M3 must stop advertising it as effective for Official. |
-| Forced FAISS IVF `nprobe` and retrieval-error policy changes | Restore upstream behavior | M3 must remove the search-policy override; retain only error translation outside the upstream algorithm. |
-| Adapter silence short-circuit and `sqrt(volume)` output shaping | Remove from Official | M3 aligns with the pinned upstream inference path and keeps only PCM unit conversion. |
-| Adapter-owned window and resampling geometry | Verify, then minimize | M3 compares non-aligned chunks, 44.1/48 kHz, silence transitions, and exact output lengths. |
+| Realtime `protect` feature blending added to `infer/rtrvc.py` | Removed in M3 | Official rejects the setting and the UI hides the Legacy-only control. |
+| Forced FAISS IVF `nprobe` and retrieval-error policy changes | Removed in M3 | The vendored search block now matches the pinned upstream behavior. |
+| Adapter silence short-circuit and `sqrt(volume)` output shaping | Removed in M3 | Official always advances upstream inference and keeps only PCM unit conversion. |
+| Adapter-owned window and resampling geometry | Minimized and verified in M3 | A frame accumulator and output queue bridge arbitrary host chunks to upstream's fixed 10 ms contract. |
 
 The runtime resource contract is intentionally small:
 

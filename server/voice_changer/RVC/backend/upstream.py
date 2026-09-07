@@ -45,8 +45,8 @@ class UpstreamRvcBackend:
     settings, resources, and device/lifecycle requirements. This adapter must
     not depend on Hybrid or acquire custom audio-enhancement algorithms.
 
-    Existing downstream processing and vendor patches still require a separate
-    convergence review; this policy does not assert upstream parity today.
+    Host adaptation is explicit below; vendored feature, retrieval, and model
+    inference behavior otherwise follows the pinned upstream source.
     """
 
     name = "official"
@@ -59,7 +59,15 @@ class UpstreamRvcBackend:
         self.input_sample_rate = 48000
         self.output_sample_rate = 48000
         self.input_buffer: torch.Tensor | None = None
-        self._buffer_shape: tuple[int, int] | None = None
+        self._stream_rates: tuple[int, int] | None = None
+        self._source_tail = np.empty(0, dtype=np.float32)
+        self._pending_input_16k = np.empty(0, dtype=np.float32)
+        self._pending_output = np.empty(0, dtype=np.float32)
+        self._output_history = np.empty(0, dtype=np.float32)
+        self._source_samples_total = 0
+        self._resampled_samples_total = 0
+        self._output_samples_total = 0
+        self._max_context_output = 0
         self._ready = False
         self.metrics = RollingInferenceMetrics()
 
@@ -140,7 +148,6 @@ class UpstreamRvcBackend:
                 hubert_path=str(hubert_path),
                 rmvpe_path=self.config.params.rmvpe,
                 speaker_id=self.settings.dstId,
-                protect=self.settings.protect,
             )
             self.engine.change_speaker_id(self.settings.dstId)
         except (RvcModelLoadError, RvcIndexLoadError):
@@ -156,7 +163,7 @@ class UpstreamRvcBackend:
         logger.info(
             "[Voice Changer][RVC Backend] Official loaded: commit=%s model=%s "
             "index=%s version=%s sr=%s speaker=%s device=%s gpu=%s precision=%s "
-            "f0=%s indexRate=%s protect=%s cudaGraph=%s",
+            "f0=%s indexRate=%s cudaGraph=%s",
             UPSTREAM_COMMIT[:12],
             model_path,
             index_path if index_path.is_file() else "disabled",
@@ -168,7 +175,6 @@ class UpstreamRvcBackend:
             "fp16" if is_half else "fp32",
             self.settings.f0Detector,
             self.settings.indexRatio,
-            self.settings.protect,
             cuda_graph_enabled,
         )
 
@@ -205,7 +211,15 @@ class UpstreamRvcBackend:
 
     def _reset_stream_state(self) -> None:
         self.input_buffer = None
-        self._buffer_shape = None
+        self._stream_rates = None
+        self._source_tail = np.empty(0, dtype=np.float32)
+        self._pending_input_16k = np.empty(0, dtype=np.float32)
+        self._pending_output = np.empty(0, dtype=np.float32)
+        self._output_history = np.empty(0, dtype=np.float32)
+        self._source_samples_total = 0
+        self._resampled_samples_total = 0
+        self._output_samples_total = 0
+        self._max_context_output = 0
         if self.engine is not None:
             self.engine.cache_pitch.zero_()
             self.engine.cache_pitchf.zero_()
@@ -260,17 +274,137 @@ class UpstreamRvcBackend:
                 ) from exc
         elif key == "f0Detector":
             self._validate_f0_method(str(value))
+        elif key == "extraConvertSize":
+            self._reset_stream_state()
         else:
             try:
-                apply_upstream_runtime_setting(self.engine, key, value)
+                applied = apply_upstream_runtime_setting(self.engine, key, value)
+                if not applied:
+                    raise RvcBackendConfigError(
+                        f"Official RVC does not support setting {key}"
+                    )
             except Exception as exc:
+                if isinstance(exc, RvcBackendConfigError):
+                    raise
                 raise RvcBackendConfigError(
                     f"Invalid Official RVC setting {key}={value!r}: {exc}"
                 ) from exc
 
+    def supports_setting(self, key: str) -> bool:
+        return key in {
+            "gpu",
+            "dstId",
+            "f0Detector",
+            "tran",
+            "extraConvertSize",
+            "indexRatio",
+        }
+
     @staticmethod
-    def _seconds_to_16k_frames(samples: int, sample_rate: int) -> int:
-        return max(0, int(samples / sample_rate * 16000))
+    def _round_to_10ms_16k(samples: int, sample_rate: int) -> int:
+        return max(0, int(np.round(samples / sample_rate * 100))) * 160
+
+    @staticmethod
+    def _fit_tail(audio: np.ndarray, length: int) -> np.ndarray:
+        audio = np.asarray(audio, dtype=np.float32).reshape(-1)
+        if length <= 0:
+            return np.empty(0, dtype=np.float32)
+        if len(audio) >= length:
+            return audio[-length:]
+        return np.pad(audio, (length - len(audio), 0))
+
+    def _ensure_stream(self, input_sample_rate: int, output_sample_rate: int) -> None:
+        rates = (input_sample_rate, output_sample_rate)
+        if self._stream_rates == rates:
+            return
+        self._reset_stream_state()
+        self._stream_rates = rates
+        self._pending_output = np.zeros(
+            max(1, output_sample_rate // 100), dtype=np.float32
+        )
+
+    def _resample_input_block(
+        self, normalized: np.ndarray, input_sample_rate: int
+    ) -> np.ndarray:
+        self._source_samples_total += len(normalized)
+        target_total = self._source_samples_total * 16000 // input_sample_rate
+        target_length = target_total - self._resampled_samples_total
+        self._resampled_samples_total = target_total
+
+        overlap = max(1, input_sample_rate // 50)
+        source = np.concatenate((self._source_tail, normalized))
+        self._source_tail = source[-overlap:].copy()
+        if source.size == 0 or target_length == 0:
+            return np.empty(0, dtype=np.float32)
+        resampled = resampy.resample(
+            source,
+            input_sample_rate,
+            16000,
+            filter="kaiser_fast",
+        ).astype(np.float32, copy=False)
+        return self._fit_tail(resampled, target_length)
+
+    def _append_engine_output(
+        self, processed_input_16k: np.ndarray, extra_16k: int, output_sample_rate: int
+    ) -> None:
+        if self.engine is None or processed_input_16k.size == 0:
+            return
+        block_frame_16k = len(processed_input_16k)
+        required_length = extra_16k + block_frame_16k
+        if self.input_buffer is None or len(self.input_buffer) < required_length:
+            grown = torch.zeros(
+                required_length, device=self.device, dtype=torch.float32
+            )
+            if self.input_buffer is not None:
+                keep = min(len(self.input_buffer), required_length)
+                grown[-keep:] = self.input_buffer[-keep:]
+            self.input_buffer = grown
+
+        incoming = torch.from_numpy(processed_input_16k).to(self.device)
+        if block_frame_16k >= len(self.input_buffer):
+            self.input_buffer.copy_(incoming[-len(self.input_buffer) :])
+        else:
+            self.input_buffer[:-block_frame_16k] = self.input_buffer[
+                block_frame_16k:
+            ].clone()
+            self.input_buffer[-block_frame_16k:] = incoming
+
+        output = self.engine.infer(
+            self.input_buffer,
+            block_frame_16k,
+            (len(self.input_buffer) - block_frame_16k) // 160,
+            block_frame_16k // 160,
+            self.settings.f0Detector,
+        )
+        converted = output.detach().float().cpu().numpy().reshape(-1)
+        if self.engine.tgt_sr != output_sample_rate:
+            converted = resampy.resample(
+                converted,
+                self.engine.tgt_sr,
+                output_sample_rate,
+                filter="kaiser_fast",
+            )
+        converted = converted.astype(np.float32, copy=False) * 32767.5
+        expected = int(round(block_frame_16k * output_sample_rate / 16000))
+        converted = self._fit_tail(converted, expected)
+        self._pending_output = np.concatenate((self._pending_output, converted))
+
+    def _emit_host_block(self, block_length: int, context_length: int) -> np.ndarray:
+        if len(self._pending_output) < block_length:
+            self._pending_output = np.pad(
+                self._pending_output, (0, block_length - len(self._pending_output))
+            )
+        emitted = self._pending_output[:block_length]
+        self._pending_output = self._pending_output[block_length:]
+        context = self._fit_tail(self._output_history, context_length)
+        self._max_context_output = max(self._max_context_output, context_length)
+        if self._max_context_output:
+            self._output_history = np.concatenate(
+                (self._output_history, emitted)
+            )[-self._max_context_output :]
+        else:
+            self._output_history = np.empty(0, dtype=np.float32)
+        return np.concatenate((context, emitted))
 
     def infer(self, request: RvcInferenceRequest) -> np.ndarray:
         started = perf_counter()
@@ -283,76 +417,46 @@ class UpstreamRvcBackend:
         if not self._ready or self.engine is None:
             raise RvcInferenceError("Official RVC backend is not ready")
         self._validate_f0_method(self.settings.f0Detector)
+        self._ensure_stream(request.input_sample_rate, request.output_sample_rate)
 
         normalized = request.audio.astype(np.float32) / 32768.0
-        audio_16k = resampy.resample(
-            normalized,
-            request.input_sample_rate,
-            16000,
-            filter="kaiser_fast",
-        ).astype(np.float32, copy=False)
-        block_frame_16k = len(audio_16k)
-        crossfade_16k = self._seconds_to_16k_frames(
-            request.crossfade_frame, request.input_sample_rate
+        audio_16k = self._resample_input_block(
+            normalized, request.input_sample_rate
         )
-        sola_16k = self._seconds_to_16k_frames(
-            request.sola_search_frame, request.input_sample_rate
+        self._pending_input_16k = np.concatenate(
+            (self._pending_input_16k, audio_16k)
         )
-        extra_16k = self._seconds_to_16k_frames(
+        process_length = len(self._pending_input_16k) // 160 * 160
+        processed = self._pending_input_16k[:process_length]
+        self._pending_input_16k = self._pending_input_16k[process_length:]
+        extra_16k = self._round_to_10ms_16k(
             self.settings.extraConvertSize, request.input_sample_rate
         )
-        buffer_length = max(
-            160,
-            extra_16k + crossfade_16k + sola_16k + block_frame_16k,
-        )
-        shape = (buffer_length, block_frame_16k)
-        if self.input_buffer is None or self._buffer_shape != shape:
-            self.input_buffer = torch.zeros(
-                buffer_length, device=self.device, dtype=torch.float32
-            )
-            self._buffer_shape = shape
-            self.engine.cache_pitch.zero_()
-            self.engine.cache_pitchf.zero_()
-
-        incoming = torch.from_numpy(audio_16k).to(self.device)
-        if block_frame_16k >= buffer_length:
-            self.input_buffer.copy_(incoming[-buffer_length:])
-        else:
-            self.input_buffer[:-block_frame_16k] = self.input_buffer[
-                block_frame_16k:
-            ].clone()
-            self.input_buffer[-block_frame_16k:] = incoming
-
-        volume = float(np.sqrt(np.square(normalized).mean()))
-        return_length = max(
-            1,
-            int(np.ceil((block_frame_16k + crossfade_16k + sola_16k) / 160)),
-        )
-        skip_head = extra_16k // 160
-        if volume < self.settings.silentThreshold:
-            output_length = return_length * int(request.output_sample_rate // 100)
-            return np.zeros(output_length, dtype=np.int16)
 
         try:
-            output = self.engine.infer(
-                self.input_buffer,
-                block_frame_16k,
-                skip_head,
-                return_length,
-                self.settings.f0Detector,
+            self._append_engine_output(
+                processed,
+                extra_16k,
+                request.output_sample_rate,
             )
-            result = output.detach().float().cpu().numpy()
         except Exception as exc:
             raise RvcInferenceError(f"Official RVC inference failed: {exc}") from exc
-        result = result * 32767.5 * np.sqrt(volume)
-        if self.engine.tgt_sr != request.output_sample_rate:
-            result = resampy.resample(
-                result,
-                self.engine.tgt_sr,
-                request.output_sample_rate,
-                filter="kaiser_fast",
+
+        target_output_total = (
+            self._source_samples_total
+            * request.output_sample_rate
+            // request.input_sample_rate
+        )
+        output_length = target_output_total - self._output_samples_total
+        self._output_samples_total = target_output_total
+        context_length = int(
+            round(
+                (request.crossfade_frame + request.sola_search_frame)
+                * request.output_sample_rate
+                / request.input_sample_rate
             )
-        return result
+        )
+        return self._emit_host_block(output_length, context_length)
 
     def get_model_info(self) -> dict[str, Any]:
         gpu_name = (
@@ -372,6 +476,13 @@ class UpstreamRvcBackend:
             "sampleRate": getattr(self.engine, "tgt_sr", None),
             "f0": bool(getattr(self.engine, "if_f0", self.config.slot.f0)),
             "speaker": self.settings.dstId,
+            "supportedSettings": sorted(
+                key
+                for key in self.settings.intData
+                + self.settings.floatData
+                + self.settings.strData
+                if self.supports_setting(key)
+            ),
         }
 
     def reset_metrics(self) -> None:

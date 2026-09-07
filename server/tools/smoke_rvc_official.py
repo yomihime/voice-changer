@@ -75,7 +75,6 @@ def main() -> int:
     parser.add_argument("--pitch", type=int, default=0)
     parser.add_argument("--f0", choices=("rmvpe", "pm", "fcpe"), default="rmvpe")
     parser.add_argument("--index-rate", type=float, default=0.0)
-    parser.add_argument("--protect", type=float, default=0.5)
     parser.add_argument("--chunk-size", type=int, default=24000)
     parser.add_argument("--extra-size", type=int, default=131040)
     parser.add_argument("--requests", type=int, default=8)
@@ -112,7 +111,6 @@ def main() -> int:
         silentThreshold=0.0,
         extraConvertSize=args.extra_size,
         indexRatio=args.index_rate,
-        protect=args.protect,
         rvcBackend="official",
     )
     backend = UpstreamRvcBackend(RvcBackendConfig(params, slot, settings))

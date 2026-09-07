@@ -99,6 +99,20 @@ class LegacyRvcBackend:
             )
             self.pipeline.setPitchExtractor(pitch_extractor)
 
+    def supports_setting(self, key: str) -> bool:
+        return key in {
+            "gpu",
+            "dstId",
+            "f0Detector",
+            "tran",
+            "silentThreshold",
+            "extraConvertSize",
+            "indexRatio",
+            "protect",
+            "rvcQuality",
+            "silenceFront",
+        }
+
     def _generate_input(
         self,
         new_data: np.ndarray,

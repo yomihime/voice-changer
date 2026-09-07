@@ -8,7 +8,8 @@ import numpy as np
 import torch
 
 from data.ModelSlot import RVCModelSlot
-from voice_changer.RVC.backend.base import RvcInferenceRequest
+from voice_changer.RVC.RVCSettings import RVCSettings
+from voice_changer.RVC.backend.base import RvcBackendConfig, RvcInferenceRequest
 from voice_changer.RVC.backend.config_mapping import (
     apply_upstream_runtime_setting,
     validate_upstream_f0,
@@ -21,6 +22,7 @@ from voice_changer.RVC.backend.exceptions import (
 )
 from voice_changer.RVC.backend.model_info import model_info_from_checkpoint
 from voice_changer.RVC.backend.metrics import RollingInferenceMetrics
+from voice_changer.RVC.backend.upstream import UpstreamRvcBackend
 from voice_changer.RVC.backend.upstream_loader import load_upstream_module
 
 
@@ -204,17 +206,36 @@ class RvcHostBoundaryTest(unittest.TestCase):
         self.assertFalse(switching.is_alive())
         self.assertTrue(replacement_started.is_set())
 
+    def test_unsupported_official_setting_is_rejected_without_mutation(self):
+        official = Mock()
+        official.name = "official"
+        official.supports_setting.return_value = False
+        params = SimpleNamespace(model_dir="models")
+        slot = RVCModelSlot(samplingRate=48000, defaultProtect=0.5)
+
+        with patch(
+            "voice_changer.RVC.RVCr2.create_rvc_backend", return_value=official
+        ):
+            from voice_changer.RVC.RVCr2 import RVCr2
+
+            host = RVCr2(params, slot)
+            self.assertFalse(host.update_settings("protect", 0.2))
+
+        self.assertEqual(host.settings.protect, 0.5)
+        official.update_settings.assert_not_called()
+        self.assertIn("does not support setting protect", host.lastBackendError)
+
 
 class ConfigMappingTest(unittest.TestCase):
     def test_official_runtime_updates_are_local_to_engine(self):
         engine = Mock()
         apply_upstream_runtime_setting(engine, "tran", 4)
         apply_upstream_runtime_setting(engine, "indexRatio", 0.75)
-        apply_upstream_runtime_setting(engine, "protect", 0.25)
         apply_upstream_runtime_setting(engine, "dstId", 2)
+        self.assertFalse(apply_upstream_runtime_setting(engine, "protect", 0.25))
         engine.change_key.assert_called_with(4)
         engine.change_index_rate.assert_called_with(0.75)
-        engine.change_protect.assert_called_with(0.25)
+        engine.change_protect.assert_not_called()
         engine.change_speaker_id.assert_called_with(2)
 
     def test_official_f0_mapping_rejects_legacy_only_detectors(self):
@@ -247,6 +268,77 @@ class InferenceMetricsTest(unittest.TestCase):
         self.assertEqual(summary["meanInferenceMs"], 30)
         self.assertEqual(summary["p50InferenceMs"], 30)
         self.assertEqual(summary["p95InferenceMs"], 39)
+
+
+class OfficialStreamingAdapterTest(unittest.TestCase):
+    @staticmethod
+    def _backend(sample_rate: int):
+        settings = RVCSettings(
+            f0Detector="rmvpe",
+            extraConvertSize=sample_rate // 10,
+            silentThreshold=1.0,
+        )
+        slot = RVCModelSlot(samplingRate=48000)
+        params = SimpleNamespace(model_dir="models")
+        backend = UpstreamRvcBackend(RvcBackendConfig(params, slot, settings))
+        backend.device = torch.device("cpu")
+        backend._ready = True
+        engine = Mock()
+        engine.tgt_sr = 48000
+        engine.if_f0 = 1
+        engine.cache_pitch = torch.zeros(1024, dtype=torch.long)
+        engine.cache_pitchf = torch.zeros(1024, dtype=torch.float32)
+
+        def infer(input_buffer, block_frame, skip_head, return_length, _f0):
+            if block_frame % 160:
+                raise AssertionError("Official block must align to 10 ms")
+            if skip_head + return_length != len(input_buffer) // 160:
+                raise AssertionError("Official output must use the newest frames")
+            return torch.full((return_length * 480,), 0.25)
+
+        engine.infer.side_effect = infer
+        backend.engine = engine
+        return backend, engine
+
+    def test_non_aligned_chunks_keep_pitch_frame_alignment_and_output_length(self):
+        for sample_rate, chunk_size in ((44100, 4001), (48000, 4097)):
+            with self.subTest(sample_rate=sample_rate):
+                backend, engine = self._backend(sample_rate)
+                request = RvcInferenceRequest(
+                    audio=np.full(chunk_size, 1200, dtype=np.int16),
+                    crossfade_frame=sample_rate // 100,
+                    sola_search_frame=sample_rate // 200,
+                    input_sample_rate=sample_rate,
+                    output_sample_rate=sample_rate,
+                )
+                for _ in range(6):
+                    output = backend.infer(request)
+                    self.assertEqual(
+                        len(output),
+                        chunk_size + request.crossfade_frame + request.sola_search_frame,
+                    )
+                blocks = [call.args[1] for call in engine.infer.call_args_list]
+                self.assertTrue(blocks)
+                self.assertTrue(all(block % 160 == 0 for block in blocks))
+
+    def test_silence_advances_engine_and_output_has_no_volume_shaping(self):
+        backend, engine = self._backend(48000)
+        request = lambda value: RvcInferenceRequest(
+            audio=np.full(4800, value, dtype=np.int16),
+            crossfade_frame=0,
+            sola_search_frame=0,
+            input_sample_rate=48000,
+            output_sample_rate=48000,
+        )
+
+        loud = backend.infer(request(16000))
+        silence = backend.infer(request(0))
+        quiet = backend.infer(request(16))
+
+        self.assertEqual(engine.infer.call_count, 3)
+        self.assertTrue(np.any(silence))
+        self.assertAlmostEqual(float(np.max(loud)), 0.25 * 32767.5, places=2)
+        self.assertAlmostEqual(float(np.max(quiet)), 0.25 * 32767.5, places=2)
 
 
 class ModelMetadataTest(unittest.TestCase):

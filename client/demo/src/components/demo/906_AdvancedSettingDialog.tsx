@@ -135,7 +135,8 @@ export const AdvancedSettingDialog = () => {
                 silenceFront: val,
             });
         };
-        const silenceFrontRow = (
+        const legacyRvcSettings = serverSetting.serverSetting.rvcBackend !== RVCBackend.official;
+        const silenceFrontRow = legacyRvcSettings ? (
             <div className="advanced-setting-container-row">
                 <div className="advanced-setting-container-row-title">SilenceFront</div>
                 <div className="advanced-setting-container-row-field">
@@ -150,9 +151,9 @@ export const AdvancedSettingDialog = () => {
                     </select>
                 </div>
             </div>
-        );
+        ) : null;
 
-        const protectRow = (
+        const protectRow = legacyRvcSettings ? (
             <div className="advanced-setting-container-row">
                 <div className="advanced-setting-container-row-title">Protect</div>
                 <div className="advanced-setting-container-row-field">
@@ -172,7 +173,7 @@ export const AdvancedSettingDialog = () => {
                     </div>
                 </div>
             </div>
-        );
+        ) : null;
 
         const onRVCQualityChanged = (val: number) => {
             serverSetting.updateServerSettings({
@@ -180,7 +181,7 @@ export const AdvancedSettingDialog = () => {
                 rvcQuality: val,
             });
         };
-        const rvcQualityRow = (
+        const rvcQualityRow = legacyRvcSettings ? (
             <div className="advanced-setting-container-row">
                 <div className="advanced-setting-container-row-title">RVC Quality</div>
                 <div className="advanced-setting-container-row-field">
@@ -195,7 +196,7 @@ export const AdvancedSettingDialog = () => {
                     </select>
                 </div>
             </div>
-        );
+        ) : null;
         const rvcBackendRow = (
             <div className="advanced-setting-container-row">
                 <div className="advanced-setting-container-row-title">RVC Backend</div>
