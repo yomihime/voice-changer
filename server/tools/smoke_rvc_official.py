@@ -3,6 +3,7 @@
 import argparse
 import json
 import statistics
+import sys
 import time
 import wave
 from array import array
@@ -10,6 +11,10 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import numpy as np
+
+SERVER_ROOT = Path(__file__).resolve().parents[1]
+if str(SERVER_ROOT) not in sys.path:
+    sys.path.insert(0, str(SERVER_ROOT))
 
 from data.ModelSlot import RVCModelSlot
 from voice_changer.RVC.RVCSettings import RVCSettings

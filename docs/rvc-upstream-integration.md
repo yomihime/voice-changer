@@ -130,22 +130,61 @@ Official RVC README, pinned to revision
 available for offline or custom release layouts.
 
 Windows NVIDIA の現行環境は [Windows セットアップ](windows-setup.md) と
-`server/requirements/windows-cuda.lock` を参照してください。以下は初期接続時の
-比較記録であり、現在のインストール用バージョンではありません。
+`server/requirements/windows-cuda.lock` を参照してください。Official の WebUI
+全体ではなく vendored runtime slice だけをホスト環境で動かすため、上流の
+requirements の範囲外でも、実際に使用する import、モデルロード、推論経路を
+検証したバージョンを固定しています。
 
-| Dependency | VCClient before | Official upstream | Historical stage-one resolution |
+| Dependency | Official upstream | Windows NVIDIA resolution | Reason / boundary |
 | --- | --- | --- | --- |
-| Python | historical release runtime | 3.12 x64 | do not force runtime migration in this change |
-| torch / torchaudio | 2.0.1 / 2.0.2 | 2.7.1 CUDA 11.8 or 12.8 | retain VCClient pins; verify newer matrix separately |
-| numpy | 1.23.5 | 1.26.4–1.x | retain 1.23.5 pending full regression |
-| faiss-cpu | 1.7.3 | 1.13.x | retain 1.7.3 API-compatible retrieval path |
-| transformers | absent | 4.49.x | add 4.49.0 |
-| praat-parselmouth | absent | 0.4.5+ | add 0.4.5 for `pm` |
-| torchfcpe | 0.0.3 | 0.0.4+ | update to 0.0.4 |
+| Python | 3.12 x64 | 3.12.14 | Matches the upstream runtime generation and the available Windows fairseq wheel. |
+| torch / torchaudio | 2.7.1 + CUDA 11.8 or 12.8 | 2.11.0 + CUDA 13.0 | Host-wide pair; Torch CUDA execution and both real RVC backends were exercised together. |
+| numpy / scipy | NumPy 1.26.x, SciPy 1.x | 2.5.2 / 1.18.1 | Host-wide numerical stack; the imported runtime path passed model inference, while excluded WebUI paths are not claimed compatible. |
+| faiss-cpu | 1.13.x | 1.15.0 | Same public index API used by realtime retrieval. |
+| transformers | 4.49.x | 5.16.1 | The local `HubertModel.from_pretrained` path was exercised with the pinned assets; unrelated WebUI APIs are excluded. |
+| onnxruntime-gpu | 1.18/1.19 by CUDA profile | 1.29.0 | Host and Legacy ONNX support only; the Official first-stage backend is PyTorch-only. |
+| librosa | 0.10.x | 1.0.0 | Host/other-model audio utility; not part of the selected Official realtime call path. |
+| FastAPI / Uvicorn / Socket.IO | WebUI-specific old ranges | 0.141.1 / 0.52.4 / 5.16.4 | VCClient owns HTTP, Socket.IO, and static hosting; upstream WebUI and Gradio are not imported. |
+| sounddevice | 0.5.x | 0.5.6 | VCClient Server Device only; Official receives PCM arrays, never device ids. |
+| praat-parselmouth / torchfcpe | 0.4.5+ / 0.0.4+ | 0.4.7 / 0.0.4 | Used for the Official `pm` and `fcpe` options. |
 
 The upstream WebUI requirements are intentionally not installed wholesale.
 Gradio, upstream FastAPI pins, sounddevice, and application packages are not
 part of the inference adapter.
+
+## M1 upstream delta decisions
+
+The pinned source and the vendored runtime were compared file by file against
+upstream commit `81eed5e8f68b6bed1789f682fe78cdd324495afc`. These decisions are the
+input to lifecycle work in M2 and convergence work in M3; they do not claim
+that all current differences are already correct.
+
+| Current delta | Decision | Owner / follow-up |
+| --- | --- | --- |
+| Package-relative imports and package `__init__.py` files | Keep as required embedding adaptation | Vendor boundary; avoids `sys.path`, `os.chdir`, and generic `infer`/`tools` collisions. |
+| Explicit HuBERT and RMVPE resource paths | Keep as required embedding adaptation | Adapter supplies host-owned paths; no process working-directory dependency. |
+| Constructor and retrieval failures re-raised | Keep as required error adaptation | Adapter translates failures into typed backend errors. |
+| Realtime speaker id instead of upstream's fixed speaker zero | Keep as required model-slot adaptation | VCClient already exposes `dstId`; validate the checkpoint range before inference. |
+| Per-device CUDA Graph enablement, teardown, and replay fallback | Keep provisionally as host lifecycle adaptation | M2 must verify device switching and resource release; M4 must cover replayable tests. |
+| Realtime `protect` feature blending added to `infer/rtrvc.py` | Remove from Official | It is not exposed by the pinned upstream realtime entry point. M3 must stop advertising it as effective for Official. |
+| Forced FAISS IVF `nprobe` and retrieval-error policy changes | Restore upstream behavior | M3 must remove the search-policy override; retain only error translation outside the upstream algorithm. |
+| Adapter silence short-circuit and `sqrt(volume)` output shaping | Remove from Official | M3 aligns with the pinned upstream inference path and keeps only PCM unit conversion. |
+| Adapter-owned window and resampling geometry | Verify, then minimize | M3 compares non-aligned chunks, 44.1/48 kHz, silence transitions, and exact output lengths. |
+
+The runtime resource contract is intentionally small:
+
+- vendored `infer/`, `configs/`, `i18n/`, `tools/`, upstream license, and pin metadata;
+- a Transformers HuBERT directory containing `config.json`,
+  `preprocessor_config.json`, and `pytorch_model.bin`;
+- `rmvpe.pt` when RMVPE is selected, and installed FCPE/Parselmouth packages
+  for their corresponding detectors;
+- the selected `.pth` checkpoint and optional `.index` from the VCClient model
+  slot;
+- one explicit CPU or `cuda:N` device selected by VCClient.
+
+Missing Official-only resources must make Official unavailable without
+preventing Legacy startup. Resource preparation is therefore on demand; M2
+owns the remaining lifecycle correction.
 
 ## Errors and fallback
 

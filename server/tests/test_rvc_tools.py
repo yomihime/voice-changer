@@ -1,6 +1,7 @@
 import base64
 import importlib.util
 import subprocess
+import sys
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -27,6 +28,18 @@ class RuntimeDiagnosticToolTest(unittest.TestCase):
             result = tool._probe_import("torch")
         self.assertFalse(result["ok"])
         self.assertTrue(result["timedOut"])
+
+
+class OfficialSmokeToolTest(unittest.TestCase):
+    def test_help_works_when_invoked_by_file_path(self):
+        process = subprocess.run(
+            [sys.executable, TOOLS_DIR / "smoke_rvc_official.py", "--help"],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        self.assertEqual(process.returncode, 0, process.stderr)
+        self.assertIn("--model", process.stdout)
 
 
 class BackendBenchmarkToolTest(unittest.TestCase):
