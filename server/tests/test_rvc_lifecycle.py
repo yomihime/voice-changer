@@ -19,6 +19,7 @@ from voice_changer.VoiceChangerManager import (
     VoiceChangerManagerSettings,
 )
 from voice_changer.VoiceChangerV2 import VoiceChangerV2
+from voice_changer.Local.ServerDevice import ServerDevice
 
 
 class ResourceIsolationTest(unittest.TestCase):
@@ -126,6 +127,32 @@ class SettingPersistenceTest(unittest.TestCase):
         manager.update_settings("gpu", 9)
 
         manager.store_setting.assert_called_once_with("gpu", 0)
+
+
+class ServerDeviceOutputMetricsTest(unittest.TestCase):
+    def test_output_samples_count_actual_callback_frames_for_short_fallback(self):
+        device = ServerDevice(Mock())
+        device.outQueue.put(np.array([123], dtype=np.int16))
+        outdata = np.zeros((4097, 1), dtype=np.float32)
+
+        device.audioOutput_callback(outdata, 4097, None, None)
+
+        self.assertEqual(device._processed_output_samples, 0)
+        self.assertEqual(device._output_write_count, 1)
+        self.assertEqual(device._output_samples, 4097)
+        self.assertTrue(np.all(outdata == 123 / 32768.0))
+
+    def test_output_callback_error_does_not_claim_written_samples(self):
+        device = ServerDevice(Mock())
+        device.outQueue = Mock()
+        device.outQueue.get.side_effect = RuntimeError("empty test queue")
+        outdata = np.zeros((256, 1), dtype=np.float32)
+
+        device.audioOutput_callback(outdata, 256, None, None)
+
+        self.assertEqual(device._output_write_count, 0)
+        self.assertEqual(device._output_samples, 0)
+        self.assertEqual(device._callback_error_count, 1)
 
 
 if __name__ == "__main__":

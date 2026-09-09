@@ -1,0 +1,10 @@
+{
+  "name": "vcclient-desktop",
+  "productName": "VCClient Desktop",
+  "version": "1.0.0",
+  "private": true,
+  "main": "main.cjs",
+  "license": "MIT",
+  "scripts": { "test": "node --test tests/policy.test.cjs" },
+  "engines": { "node": ">=24 <25" }
+}

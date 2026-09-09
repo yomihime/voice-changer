@@ -14,7 +14,7 @@ Python、Anaconda、Node.js、CUDA Toolkit の事前インストールは不要�
 リポジトリを clone するか、ソースコードの ZIP をダウンロードして展開してください。
 
 1. `install-windows.bat` をダブルクリックします。ツールのダウンロードと検証、依存ライブラリのインストール、フロントエンドのビルド、実行環境のチェックを行います。
-2. `start-client-windows.bat` をダブルクリックします。Server のコンソールを開き、`/info` の準備完了後に既定ブラウザで Client を開きます。未インストールの場合は先にインストールを行います。
+2. `start-client-windows.bat` をダブルクリックします。Server を非表示で起動し、VCClient 固有の `/info` 応答を確認してから独立した Electron Client ウィンドウを開きます。初回のインストールやウェイトのダウンロードには数分以上かかることがあるため、完了するまで待ってください。ログは `.runtime/launcher/` に保存されます。
 3. Client でモデルを登録します。Server だけを起動したい場合は従来どおり `start-windows.bat` を使用します。
 
 起動後の設定とモデルスロットは従来どおりサーバ側で管理します。既定のバックエンドは Legacy です。
@@ -32,11 +32,23 @@ Server と Client を一度に起動する入口には、テスト向けの引�
 start-client-windows.bat -Port 18889
 start-client-windows.bat -Port 18889 -Lan
 start-client-windows.bat -SkipDownloads -NoBrowser
+start-client-windows.bat -Browser
 ```
 
 `-Lan` は Server を `0.0.0.0` に bind しますが、ローカル Client は安全な
-`127.0.0.1` URL で開きます。既に同じポートで VCClient が応答している場合は、
-重複起動せず既存 Client を開きます。`-NoBrowser` は自動試験用です。
+`127.0.0.1` URL で開きます。既に同じポートで、VCClient の必須フィールドを持つ
+`/info` が応答している場合は、重複起動せず既存 Client を開きます。別の HTTP
+サービス、壊れた JSON、TCP 接続だけのプロセスは VCClient として扱わず、終了コード
+2 で停止します。起動中のインストールまたはウェイト取得は `-ReadyTimeoutSeconds`
+（既定 900 秒）まで待ち、タイムアウト時は自分で起動したプロセスツリーだけを停止します。
+既定は独立 Desktop Client です。`-Browser` を指定した場合だけ既定ブラウザで開きます。`-NoBrowser` は URL の表示だけを行う自動試験用です。Desktop Client をソースから組み立てる場合は、固定した Electron ZIP を検証して次を実行します。
+
+```powershell
+python scripts/desktop.py build
+python scripts/desktop.py verify
+```
+
+ポータブル ZIP には検証済み Electron 実行環境（`Electron 44.2.0`）を含めます。`node.exe`、Rust、MSVC、WebView2 は配布先で不要です。Desktop Client の設定は `%LOCALAPPDATA%/Yomihime/VoiceChanger/Desktop/` に保存され、原作者版の設定とは分離されます。マイクは Client 内の確認ダイアログで許可した場合だけ使用します。
 
 ## Windows Server GUI
 
@@ -44,14 +56,14 @@ start-client-windows.bat -SkipDownloads -NoBrowser
 専用の Server コントロールを開きます。新しい Python パッケージは不要で、
 Windows PowerShell と WinForms を使用します。
 
-- Server の Start / Stop と Running / Starting / exit code 表示
+- Server の Start / Stop と Running / Starting / Ready (no model) / exit code 表示
 - port 番号と Local only / LAN bind の選択
 - weight download の skip と、準備完了時の Client 自動表示
 - Client を開く、URL をコピー、Server stdout/stderr の末尾表示、log folder を開く
 - 設定の保存（`.runtime/server-gui/settings.json`）
 - 最小化または閉じる操作で task tray に格納
 - tray menu から Show / Open Client / Start / Stop / Exit
-- 使用中 port の起動防止と、終了時の Server process tree 停止
+- 使用中 port の起動防止と、GUI 自身が起動した Server process tree のみの停止
 
 GUI が起動する Server は `scripts/windows.ps1 -Action start` と同じ経路です。
 `start-windows.bat`、`scripts/windows.ps1`、`scripts/manage.py start` は変更せず、
@@ -71,7 +83,7 @@ powershell.exe -NoProfile -STA -ExecutionPolicy Bypass `
   -File scripts\server-gui.ps1 -AutomationTest -AutomationPort 18893
 ```
 
-通常の初回起動では、既存のサーバ処理に従って共通の推論用ウェイトをダウンロードします。依存ライブラリのインストールとは別の処理です。進行状況はターミナルで確認してください。
+通常の初回起動では、既存のサーバ処理に従って共通の推論用ウェイトをダウンロードします。依存ライブラリのインストールとは別の処理です。CLI はこの処理と Server 起動を同じ待機状態として表示し、GUI は Starting として表示します。既存の外部 VCClient を検出した場合、GUI はそれを Ready と表示しますが、Stop では終了しません。
 
 `--skip-downloads` は、必要なウェイトを用意済みのオフライン環境や起動確認で使用します。ウェイトが不足している場合は推論できません。LAN 接続では、従来の HTTPS と allowed-origins の設定を使用してください。
 
@@ -95,6 +107,7 @@ Legacy / Official のモジュール読み込み、リサンプリング、HTTPS
 
 - Python 本体と固定した Python ライブラリ
 - ビルド済みフロントエンドとサーバの実行コード
+- 固定 Electron 44.2.0 Desktop Client と Chromium のライセンス
 - 固定バージョンの Official RVC 実行コードとライセンス
 - 起動スクリプト、環境チェック、ファイル検証用の `package-manifest.json`
 
@@ -118,10 +131,10 @@ Official RVC の実機受入では、通常のモデルスロットを選択し�
 python server/tools/soak_rvc_runtime.py device `
   --duration 600 --json test-output\device-soak.json
 
-python server/tools/soak_rvc_runtime.py `
-  --url http://192.168.1.10:18888 lan `
+python server/tools/soak_rvc_runtime.py lan `
   --wav server\test.wav --duration 600 `
-  --json test-output\lan-soak.json
+  --json test-output\lan-soak.json `
+  --url http://192.168.1.10:18888
 ```
 
 レポートには初回パケット観測、推論回数、P50/P95、エラー、shape 切替、

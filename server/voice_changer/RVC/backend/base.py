@@ -17,6 +17,12 @@ class RvcBackendConfig:
 
 @dataclass(frozen=True)
 class RvcInferenceRequest:
+    """Mono input PCM; overlap/search are measured at input_sample_rate.
+
+    Official returns a fresh window at output_sample_rate: the cumulative
+    output-count delta followed by overlap and search (each rate-converted).
+    VoiceChangerV2 owns the only SOLA operation on that window.
+    """
     audio: AudioInOut
     crossfade_frame: int
     sola_search_frame: int

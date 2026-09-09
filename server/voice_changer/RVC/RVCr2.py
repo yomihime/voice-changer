@@ -31,6 +31,7 @@ class RVCr2(VoiceChangerModel):
         self.inputSampleRate = 48000
         self.outputSampleRate = 48000
         self._lifecycle_lock = RLock()
+        self._stream_generation = 0
         self.backend = self._create_backend(self.settings.rvcBackend)
         self.lastBackendError: str | None = None
 
@@ -58,6 +59,7 @@ class RVCr2(VoiceChangerModel):
             "[Voice Changer][RVC] Initializing backend=%s",
             self.settings.rvcBackend,
         )
+        self._stream_generation += 1
         try:
             self._prepare_backend(self.backend)
             self.lastBackendError = None
@@ -93,18 +95,22 @@ class RVCr2(VoiceChangerModel):
         previous_kind = self.settings.rvcBackend
         previous_settings = self.settings
         previous_was_ready = previous.get_model_info().get("ready") is True
+        self._stream_generation += 1
         previous.close()
-        candidate = self._create_backend(kind, settings)
+        candidate = None
         try:
+            candidate = self._create_backend(kind, settings)
             self._prepare_backend(candidate)
         except Exception as exc:
-            candidate.close()
+            if candidate is not None:
+                candidate.close()
             logger.exception(
                 "[Voice Changer][RVC] Backend replacement failed: %s", exc
             )
             if previous_was_ready:
-                recovery = self._create_backend(previous_kind, previous_settings)
+                recovery = previous
                 try:
+                    recovery = self._create_backend(previous_kind, previous_settings)
                     self._prepare_backend(recovery)
                     self.backend = recovery
                 except Exception as recovery_exc:
@@ -139,9 +145,17 @@ class RVCr2(VoiceChangerModel):
 
     def setSamplingRate(self, inputSampleRate, outputSampleRate):
         with self._lifecycle_lock:
+            if (self.inputSampleRate, self.outputSampleRate) == (inputSampleRate, outputSampleRate):
+                return
+            try:
+                self.backend.set_sampling_rate(inputSampleRate, outputSampleRate)
+            except RvcBackendError as exc:
+                self.lastBackendError = str(exc)
+                raise
             self.inputSampleRate = inputSampleRate
             self.outputSampleRate = outputSampleRate
-            self.backend.set_sampling_rate(inputSampleRate, outputSampleRate)
+            self._stream_generation += 1
+            self.lastBackendError = None
 
     def update_settings(self, key: str, val: int | float | str):
         with self._lifecycle_lock:
@@ -179,16 +193,24 @@ class RVCr2(VoiceChangerModel):
                     self.settings.rvcBackend, candidate_settings
                 )
 
+            if value == old_value:
+                return True
+            if key == "extraConvertSize" and int(value) < 0:
+                self.lastBackendError = "extraConvertSize must be non-negative"
+                return False
             setattr(self.settings, key, value)
             try:
                 self.backend.update_settings(key, value)
                 self.lastBackendError = None
+                if key == "extraConvertSize":
+                    self._stream_generation += 1
             except RvcBackendError as exc:
                 setattr(self.settings, key, old_value)
                 try:
                     self.backend.update_settings(key, old_value)
                 except Exception:
                     self.backend.close()
+                    self._stream_generation += 1
                     logger.exception(
                         "[Voice Changer][RVC] Setting rollback failed"
                     )
@@ -196,6 +218,15 @@ class RVCr2(VoiceChangerModel):
                 logger.exception("[Voice Changer][RVC] Setting update failed: %s", exc)
                 return False
             return True
+
+    def get_stream_generation(self):
+        """Changes when stream history is invalidated, independently of acceptance."""
+        with self._lifecycle_lock:
+            generation = getattr(self.backend, "stream_generation", 0)
+            return (self._stream_generation, generation if isinstance(generation, int) else 0)
+
+    def uses_official_stream(self) -> bool:
+        return self.settings.rvcBackend == "official"
 
     def get_info(self):
         with self._lifecycle_lock:

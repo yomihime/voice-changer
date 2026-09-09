@@ -23,13 +23,19 @@ PACKAGE_SUPPORT_FILES = (
     "start-client-windows.bat",
     "server-gui-windows.bat",
     "scripts/windows.ps1",
+    "scripts/windows-launcher.ps1",
     "scripts/start-client.ps1",
     "scripts/server-gui.ps1",
+    "scripts/desktop.py",
     "scripts/manage.py",
     "scripts/check_environment.py",
     "scripts/runtime-versions.json",
     "server/requirements/windows-cuda.lock",
     "docs/windows-setup.md",
+)
+DESKTOP_APP_FILES = (
+    "package.json", "main.cjs", "runtime.cjs", "policy.cjs", "self-test.cjs", "icon.png",
+    "electron-runtime.json", "README.md",
 )
 
 
@@ -109,6 +115,7 @@ def install():
          "--index", VERSIONS["torch_index"], "--index-strategy", "unsafe-best-match"])
     run([uv, "pip", "check", "--python", sys.executable])
     build_frontend()
+    build_desktop()
     check()
     (RUNTIME / "installed.sha256").write_text(file_hash(LOCK), encoding="ascii")
     print("Installation verified. Run start-windows.bat.")
@@ -116,6 +123,11 @@ def install():
 
 def check():
     run([sys.executable, ROOT / "scripts/check_environment.py"], cwd=ROOT / "server")
+
+
+def build_desktop():
+    """Assemble the pinned Electron runtime used by the default Windows client."""
+    run([sys.executable, ROOT / "scripts/desktop.py", "build"])
 
 
 def ensure_installed():
@@ -129,6 +141,9 @@ def ensure_installed():
         if (not (RUNTIME / "frontend/index.html").is_file() or not frontend_stamp.is_file()
                 or frontend_stamp.read_text(encoding="ascii") != frontend_fingerprint()):
             build_frontend()
+        # Keep the source installation's Electron runtime aligned as well. build_desktop
+        # verifies the manifest fingerprint and returns immediately when it is current.
+        build_desktop()
 
 
 def launch_env():
@@ -191,6 +206,7 @@ def application_files():
 def build(output):
     ensure_installed()
     check()
+    build_desktop()
     if Path(sys.prefix).resolve() != (ROOT / ".venv").resolve():
         raise RuntimeError("Build requires the verified source virtual environment")
     output = output.resolve()
@@ -215,6 +231,7 @@ def build(output):
         for path in ROOT.glob("LICENSE*"):
             shutil.copy2(path, stage / path.name)
         copy_tree(RUNTIME / "frontend", stage / ".runtime/frontend")
+        copy_tree(RUNTIME / "desktop", stage / ".runtime/desktop")
         print("Copying the portable Python runtime and dependencies...", flush=True)
         # Copy a relocatable standalone interpreter, never the absolute-path venv.
         portable = stage / ".runtime/portable"

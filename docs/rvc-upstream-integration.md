@@ -105,20 +105,54 @@ Device/client PCM (input SR, int16)
   -> device/client output
 ```
 
-The Official adapter maintains the rolling 16 kHz model window, upstream pitch
-caches, and at most one 10 ms frame of host-boundary latency. Arbitrary host
-chunks are accumulated into complete 160-sample frames before calling upstream,
-so audio-window advancement and pitch-cache advancement remain identical. A
-small output queue returns the exact host-requested sample count at 44.1 or
-48 kHz, while prior emitted samples provide the requested SOLA/crossfade
-context. `skip_head` is VCClient's extra context in 10 ms frames and
-`return_length` is the complete block passed to upstream. Official GUI denoise,
-device streams, output SOLA, and monitor logic are not used, so there is only
-one final stitch/crossfade stage.
+Official の音声時刻は、入力の累積サンプル数 `N` と、出力の累積サンプル数
+`floor(N * outputSR / inputSR)` で管理します。コールバックごとの長さを丸めて
+足し合わせません。入力はグローバルな 10 ms 境界にそろえたフィルター履歴と
+10 ms の先読みを使って 16 kHz にリサンプルし、完全な 160 サンプル単位で
+上流へ渡します。`block_frame_16k` は今回進める入力と pitch cache の量です。
+`skip_head` は extra context、`return_length` は今回の出力と本物の重複区間を
+含むモデル窓の長さで、どちらも 10 ms フレーム単位です。モデル・特徴抽出・
+検索アルゴリズムは固定上流のままです。
 
-The first implementation resamples on CPU for correctness and moves one tensor
-to the selected device. Copy/resample optimization is deferred until profiling
-shows it is safe.
+入力単位の設定 overlap/search は、それぞれ `floor(samples * outputSR / inputSR)`
+で出力単位に変換します。出力 overlap を `C`、search を `S` とすると、固定遅延は
+`D = C + S + outputSR / 50` サンプルです。最後の 20 ms は、リサンプルの先読み
+10 ms と、未完成 pitch フレームを待つための 10 ms です。旧実装の 10 ms キューに
+旧 PCM を付け足す方式は廃止しました。入力のフィルター先読みをなくせば遅延を
+減らせますが、任意のコールバック境界をまたぐ波形の一致は保証できません。
+
+今回の出力位置を `P`、今回の出力サンプル数を `B` とすると、バックエンドは
+`[P - D, P + B + C + S - D)` を**今回の推論で生成**します。過去に出力した PCM
+を先頭にコピーすることはありません。モデル出力が短い・非有限の場合は失敗とし、
+補完で成功扱いにしません。負の入力時刻だけが明示的な開始時の無音です。
+VoiceChangerV2 はこの窓に一度だけ SOLA を適用し、`B` サンプルを返します。
+最初の応答も要求に対応する長さで、固定 4096 サンプルの捨てブロックはありません。
+SOLA の検索オフセット `o` により、混合区間後の実際の位置は `P - D + o`、
+`0 <= o <= S` です。これは累積ドリフトとは区別します。
+
+設定 overlap はコールバックの長さによらず推論窓に確保します。短いコールバック
+では実際の混合長を `min(C, B)` とし、宿主が前回予測の未使用の重複区間を保持します。
+4097/4001 のように長さが変わっても時刻の原点を変更しません。設定 overlap/search、
+サンプルレート、`extraConvertSize` が変わるとストリームを再構築し、開始遅延が再発生します。
+入力・出力レートは 16000/24000/32000/40000/44100/48000/88200/96000 Hz、
+モデルレートは 32000/40000/48000 Hz を受け付けます。入力は mono、1 ブロックは
+10 ms 以上です。上流 pitch cache の 1024 フレームを超える窓は明示的に拒否します。
+これらの受け付け範囲すべてを実モデルで検証したという意味ではありません。
+CPU 上のリサンプル最適化は別途計測して判断します。
+
+### ストリーム再構築と設定の受け付け
+
+`RVCr2.update_settings()` の bool は設定を受け付けたかを表します。
+`get_stream_generation()` はそれとは独立した `(hostGeneration, backendGeneration)`
+で、モデル再初期化、成功した置換、失敗後の復旧、復旧失敗による停止、
+レート・コンテキストの変更を宿主へ通知します。VoiceChangerV2 は設定更新時と
+推論直後にこの値を確認し、古い SOLA 履歴を破棄します。失敗した候補設定は
+引き続き `False`、選択値は以前のまま、原因は `backendError` に残ります。
+復旧も失敗した場合は `ready=false` です。通常の設定拒否と同値更新では、
+実際の再構築がなければ音声履歴を消去しません。
+
+Legacy の既存音声アルゴリズムと既定選択は維持します。Legacy の zero-crossfade
+に関する既知の問題は今回の Official 修正の対象外です。
 
 ## Resource and dependency compatibility
 
@@ -318,3 +352,10 @@ limited to the package plus Windows System32, the relocated runtime passed
 Legacy/Official imports, CUDA/ONNX execution, and an actual `/info` server
 startup on port 18891. This isolates the portable package from system Python;
 it is not a claim of testing on a second physical Windows installation.
+## 実行時メトリクスと長時間検証
+
+`inferenceCount` は推論の試行回数であり、成功を意味しない。`inferenceSuccessCount` と `inferenceFailureCount` の合計が試行回数になり、入力サンプルは `inferenceInputSamples`、Official が生成したコンテキストを含む出力は `inferenceOutputSamples` に記録される。実際にホストから返したサンプルは `hostRuntimeInfo.outputSamples`、失敗時の短いフォールバックは `fallbackSamples` として分離する。
+
+`serverDeviceRuntimeInfo` は PortAudio のストリーム状態、入力コールバック、推論済みブロック、出力書き込み、コールバック例外、underflow/overflow/unknown status、キュー破棄、メインループ例外を別々に報告する。`active` は開始要求 (`serverAudioStated`) と独立した実ストリーム状態である。未取得の項目は 0 で埋めず unknown として扱う。
+
+`server/tools/soak_rvc_runtime.py` は成功推論とホスト出力の継続進行、epoch/generation の不変性、失敗・例外・状態イベント、HTTP 応答と出力長の整合を検査する。報告の `errors` は人間向けメッセージ、`errorTypes` は `runtime`、`stalled`、`counter_reset`、`device_callback`、`http`、`output_length`、`unknown_metric` などの診断分類である。過去の `errors=[]` の記録は旧ツールの観測範囲を示すだけで、推論成功や音声コールバックの無故障を証明しない。

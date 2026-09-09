@@ -196,9 +196,18 @@ class LegacyRvcBackend:
     def infer(self, request: RvcInferenceRequest) -> np.ndarray:
         started = perf_counter()
         try:
-            return self._infer(request)
-        finally:
-            self.metrics.record((perf_counter() - started) * 1000.0)
+            result = self._infer(request)
+        except Exception:
+            self.metrics.record_failure(
+                (perf_counter() - started) * 1000.0, len(request.audio)
+            )
+            raise
+        self.metrics.record_success(
+            (perf_counter() - started) * 1000.0,
+            len(request.audio),
+            len(result),
+        )
+        return result
 
     def _infer(self, request: RvcInferenceRequest) -> np.ndarray:
         if not self._ready or self.pipeline is None:

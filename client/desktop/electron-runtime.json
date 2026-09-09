@@ -1,0 +1,7 @@
+{
+  "version": "44.2.0",
+  "platform": "win32-x64",
+  "url": "https://github.com/electron/electron/releases/download/v44.2.0/electron-v44.2.0-win32-x64.zip",
+  "sha256": "4021363e3090d67a144ebedb90765cf193b0e61f300c519c83f0174502a481da",
+  "checksumsUrl": "https://github.com/electron/electron/releases/download/v44.2.0/SHASUMS256.txt"
+}

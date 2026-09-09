@@ -34,10 +34,14 @@ class DistributionBoundaryTest(unittest.TestCase):
     def test_client_launcher_is_packaged(self):
         self.assertIn("start-client-windows.bat", manage.PACKAGE_SUPPORT_FILES)
         self.assertIn("scripts/start-client.ps1", manage.PACKAGE_SUPPORT_FILES)
+        self.assertIn("scripts/windows-launcher.ps1", manage.PACKAGE_SUPPORT_FILES)
 
     def test_server_gui_is_packaged(self):
         self.assertIn("server-gui-windows.bat", manage.PACKAGE_SUPPORT_FILES)
         self.assertIn("scripts/server-gui.ps1", manage.PACKAGE_SUPPORT_FILES)
+
+    def test_desktop_builder_is_packaged(self):
+        self.assertIn("scripts/desktop.py", manage.PACKAGE_SUPPORT_FILES)
 
     def test_portable_prune_removes_only_build_and_test_payloads(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -88,6 +92,57 @@ class DistributionBoundaryTest(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError, "build failed"):
                     manage.install()
             self.assertFalse((root / ".runtime/installed.sha256").exists())
+
+    def test_existing_install_repairs_missing_desktop_runtime(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            runtime = root / ".runtime"
+            (runtime / "frontend").mkdir(parents=True)
+            (runtime / "frontend/index.html").write_text("fresh", encoding="utf-8")
+            (runtime / "frontend.sha256").write_text("fresh-source", encoding="ascii")
+            (runtime / "installed.sha256").write_text(manage.file_hash(manage.LOCK), encoding="ascii")
+            with (patch.object(manage, "ROOT", root), patch.object(manage, "RUNTIME", runtime),
+                  patch.object(manage, "frontend_fingerprint", return_value="fresh-source"),
+                  patch.object(manage, "build_desktop") as build_desktop,
+                  patch.object(manage, "build_frontend") as build_frontend,
+                  patch.object(manage, "install") as install):
+                manage.ensure_installed()
+            install.assert_not_called()
+            build_frontend.assert_not_called()
+            build_desktop.assert_called_once_with()
+
+    def test_existing_install_refreshes_frontend_and_desktop(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            runtime = root / ".runtime"
+            (runtime / "frontend").mkdir(parents=True)
+            (runtime / "frontend/index.html").write_text("old", encoding="utf-8")
+            (runtime / "frontend.sha256").write_text("old-source", encoding="ascii")
+            (runtime / "installed.sha256").write_text(manage.file_hash(manage.LOCK), encoding="ascii")
+            with (patch.object(manage, "ROOT", root), patch.object(manage, "RUNTIME", runtime),
+                  patch.object(manage, "frontend_fingerprint", return_value="new-source"),
+                  patch.object(manage, "build_desktop") as build_desktop,
+                  patch.object(manage, "build_frontend") as build_frontend,
+                  patch.object(manage, "install") as install):
+                manage.ensure_installed()
+            install.assert_not_called()
+            build_frontend.assert_called_once_with()
+            build_desktop.assert_called_once_with()
+
+    def test_portable_install_returns_without_source_rebuilds(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            runtime = root / ".runtime"
+            (runtime / "portable").mkdir(parents=True)
+            (runtime / "portable/python.exe").write_bytes(b"portable")
+            with (patch.object(manage, "ROOT", root), patch.object(manage, "RUNTIME", runtime),
+                  patch.object(manage, "build_desktop") as build_desktop,
+                  patch.object(manage, "build_frontend") as build_frontend,
+                  patch.object(manage, "install") as install):
+                manage.ensure_installed()
+            install.assert_not_called()
+            build_frontend.assert_not_called()
+            build_desktop.assert_not_called()
 
 
 if __name__ == "__main__":

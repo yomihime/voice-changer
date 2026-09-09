@@ -14,6 +14,8 @@ Add-Type -AssemblyName System.Drawing
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $windowsScript = Join-Path $PSScriptRoot 'windows.ps1'
+$launcherHelper = Join-Path $PSScriptRoot 'windows-launcher.ps1'
+. $launcherHelper
 $runtimeDirectory = Join-Path $repoRoot '.runtime\server-gui'
 $settingsPath = Join-Path $runtimeDirectory 'settings.json'
 $stdoutPath = Join-Path $runtimeDirectory 'server.stdout.log'
@@ -22,6 +24,8 @@ $powershellPath = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.ex
 $taskkillPath = "$env:SystemRoot\System32\taskkill.exe"
 
 $script:serverProcess = $null
+$script:serverOwner = $null
+$script:externalServer = $false
 $script:allowExit = $false
 $script:trayHintShown = $false
 $script:lastLogSignature = ''
@@ -132,15 +136,22 @@ function Refresh-LogView {
 
 function Update-Controls {
     $running = $null -ne $script:serverProcess -and !$script:serverProcess.HasExited
-    $ready = $running -and (Test-ServerPort -Port ([int]$script:portControl.Value))
-    if ($ready) {
-        Set-ServerStatus -Text 'Running' -Color ([System.Drawing.Color]::ForestGreen)
+    $port = [int]$script:portControl.Value
+    $state = Get-VCClientEndpointState -Port $port
+    $script:lastEndpointState = $state
+    $ready = $state.IsVCClient
+    if ($ready -and ($running -or $script:externalServer)) {
+        $label = if ($state.ModelReady) { 'Running' } else { 'Ready (no model)' }
+        Set-ServerStatus -Text $label -Color ([System.Drawing.Color]::ForestGreen)
+    } elseif ($state.Kind -in @('ForeignHttp', 'InvalidHttp', 'TcpOnly')) {
+        Set-ServerStatus -Text "Port conflict ($($state.Kind))" -Color ([System.Drawing.Color]::Firebrick)
     } elseif ($running) {
         Set-ServerStatus -Text 'Starting' -Color ([System.Drawing.Color]::DarkOrange)
     } elseif ($null -ne $script:serverProcess -and $script:serverProcess.HasExited) {
         $exitCode = $script:serverProcess.ExitCode
         $script:serverProcess.Dispose()
         $script:serverProcess = $null
+        $script:serverOwner = $null
         if ($exitCode -eq 0) {
             Set-ServerStatus -Text 'Stopped' -Color ([System.Drawing.Color]::DimGray)
         } else {
@@ -152,17 +163,45 @@ function Update-Controls {
 
     $running = $null -ne $script:serverProcess -and !$script:serverProcess.HasExited
     $script:startButton.Enabled = !$running
-    $script:stopButton.Enabled = $running
-    $script:portControl.Enabled = !$running
-    $script:bindControl.Enabled = !$running
-    $script:skipDownloadsControl.Enabled = !$running
-    $script:trayStartItem.Enabled = !$running
-    $script:trayStopItem.Enabled = $running
+    $script:stopButton.Enabled = $running -and $null -ne $script:serverOwner -and $script:serverOwner.OwnsProcess
+    $script:portControl.Enabled = !$running -and !$script:externalServer
+    $script:bindControl.Enabled = !$running -and !$script:externalServer
+    $script:skipDownloadsControl.Enabled = !$running -and !$script:externalServer
+    $script:trayStartItem.Enabled = !$running -and !$script:externalServer
+    $script:trayStopItem.Enabled = $running -and $null -ne $script:serverOwner -and $script:serverOwner.OwnsProcess
     Refresh-LogView
 }
 
 function Open-Client {
-    Start-Process -FilePath (Get-ClientUrl)
+    $state = Get-VCClientEndpointState -Port ([int]$script:portControl.Value)
+    if (!$state.IsVCClient) {
+        $message = switch ($state.Kind) {
+            'ForeignHttp' { [regex]::Unescape('\u6307\u5b9a\u30dd\u30fc\u30c8\u306fVCClient\u3067\u306f\u306a\u3044HTTP\u30b5\u30fc\u30d3\u30b9\u3067\u4f7f\u7528\u3055\u308c\u3066\u3044\u307e\u3059\u3002') }
+            'InvalidHttp' { [regex]::Unescape('\u6307\u5b9a\u30dd\u30fc\u30c8\u306e\u5fdc\u7b54\u3092VCClient\u3068\u3057\u3066\u78ba\u8a8d\u3067\u304d\u307e\u305b\u3093\u3067\u3057\u305f\u3002') }
+            'TcpOnly' { [regex]::Unescape('\u6307\u5b9a\u30dd\u30fc\u30c8\u306f\u958b\u3044\u3066\u3044\u307e\u3059\u304c\u3001VCClient\u306eHTTP\u5fdc\u7b54\u304c\u3042\u308a\u307e\u305b\u3093\u3002') }
+            'HttpTimeout' { [regex]::Unescape('VCClient\u306e\u5fdc\u7b54\u304c\u30bf\u30a4\u30e0\u30a2\u30a6\u30c8\u3057\u307e\u3057\u305f\u3002') }
+            default { [regex]::Unescape('VCClient\u304c\u8d77\u52d5\u3057\u3066\u3044\u306a\u3044\u305f\u3081\u3001Desktop Client\u3092\u958b\u3051\u307e\u305b\u3093\u3002') }
+        }
+        [System.Windows.Forms.MessageBox]::Show(
+            $message,
+            'VCClient Server',
+            [System.Windows.Forms.MessageBoxButtons]::OK,
+            [System.Windows.Forms.MessageBoxIcon]::Error
+        ) | Out-Null
+        return $false
+    }
+    try {
+        [void](Start-VCClientDesktop -RepositoryRoot $repoRoot -Url (Get-ClientUrl))
+        return $true
+    } catch {
+        [System.Windows.Forms.MessageBox]::Show(
+            $_.Exception.Message,
+            'Unable to open Desktop Client',
+            [System.Windows.Forms.MessageBoxButtons]::OK,
+            [System.Windows.Forms.MessageBoxIcon]::Error
+        ) | Out-Null
+        return $false
+    }
 }
 
 function Start-Server {
@@ -170,7 +209,13 @@ function Start-Server {
         return
     }
     $port = [int]$script:portControl.Value
-    if (Test-ServerPort -Port $port) {
+    $existing = Get-VCClientEndpointState -Port $port
+    if ($existing.IsVCClient) {
+        $script:externalServer = $true
+        Set-ServerStatus -Text $(if ($existing.ModelReady) { 'Running' } else { 'Ready (no model)' }) -Color ([System.Drawing.Color]::ForestGreen)
+        return
+    }
+    if ($existing.Kind -in @('ForeignHttp', 'InvalidHttp', 'TcpOnly')) {
         [System.Windows.Forms.MessageBox]::Show(
             "Port $port is already in use. Choose another port or stop the other service.",
             'VCClient Server',
@@ -191,24 +236,17 @@ function Start-Server {
     } else {
         '127.0.0.1'
     }
-    $arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$windowsScript`" -Action start -- -p $port --host $bindAddress"
-    if ($script:skipDownloadsControl.Checked) {
-        $arguments += ' --skip-downloads'
-    }
-
     try {
-        $script:serverProcess = Start-Process `
-            -FilePath $powershellPath `
-            -ArgumentList $arguments `
-            -WorkingDirectory $repoRoot `
-            -WindowStyle Hidden `
-            -RedirectStandardOutput $stdoutPath `
-            -RedirectStandardError $stderrPath `
-            -PassThru
+        $script:serverOwner = Start-VCClientServerProcess -WindowsScript $windowsScript -WorkingDirectory $repoRoot `
+            -Port $port -BindHost $bindAddress -SkipDownloads:$script:skipDownloadsControl.Checked `
+            -WindowStyle Hidden -StandardOutputPath $stdoutPath -StandardErrorPath $stderrPath
+        $script:serverProcess = $script:serverOwner.Process
+        $script:externalServer = $false
         Set-ServerStatus -Text 'Starting' -Color ([System.Drawing.Color]::DarkOrange)
         $script:startupOpenPending = $script:openClientControl.Checked
     } catch {
         $script:serverProcess = $null
+        $script:serverOwner = $null
         [System.Windows.Forms.MessageBox]::Show(
             $_.Exception.Message,
             'Unable to start VCClient Server',
@@ -221,16 +259,13 @@ function Start-Server {
 
 function Stop-Server {
     if ($null -eq $script:serverProcess -or $script:serverProcess.HasExited) {
-        return
+        return $true
     }
-    $processId = $script:serverProcess.Id
     try {
-        Start-Process `
-            -FilePath $taskkillPath `
-            -ArgumentList "/PID $processId /T /F" `
-            -WindowStyle Hidden `
-            -Wait | Out-Null
-        $script:serverProcess.WaitForExit(10000) | Out-Null
+        $result = Stop-VCClientOwnedProcess -Owner $script:serverOwner
+        if (!$result.Success) { throw $result.Error }
+        $script:serverOwner = $null
+        $script:serverProcess = $null
     } catch {
         [System.Windows.Forms.MessageBox]::Show(
             $_.Exception.Message,
@@ -238,9 +273,13 @@ function Stop-Server {
             [System.Windows.Forms.MessageBoxButtons]::OK,
             [System.Windows.Forms.MessageBoxIcon]::Error
         ) | Out-Null
+        Update-Controls
+        return $false
     }
     $script:startupOpenPending = $false
+    $script:externalServer = $false
     Update-Controls
+    return $true
 }
 
 function Show-MainWindow {
@@ -261,7 +300,9 @@ function Exit-Gui {
         if ($answer -ne [System.Windows.Forms.DialogResult]::Yes) {
             return
         }
-        Stop-Server
+        if (!(Stop-Server)) {
+            return
+        }
     }
     Save-GuiSettings
     $script:allowExit = $true
@@ -436,12 +477,11 @@ $script:trayExitItem.Add_Click({ Exit-Gui })
 $timer = [System.Windows.Forms.Timer]::new()
 $timer.Interval = 750
 $timer.Add_Tick({
-    $wasReady = $script:statusValue.Text -eq 'Running'
     Update-Controls
-    $isReady = $script:statusValue.Text -eq 'Running'
-    if (!$wasReady -and $isReady -and $script:startupOpenPending) {
+    $isReady = $null -ne $script:lastEndpointState -and $script:lastEndpointState.IsHttpReady
+    if ($isReady -and $script:startupOpenPending) {
         $script:startupOpenPending = $false
-        Open-Client
+        [void](Open-Client)
     }
 })
 $timer.Start()
@@ -490,7 +530,7 @@ if ($AutomationTest) {
         while ([DateTime]::UtcNow -lt $deadline) {
             [System.Windows.Forms.Application]::DoEvents()
             Update-Controls
-            if ($script:statusValue.Text -eq 'Running') {
+            if ($script:statusValue.Text -in @('Running', 'Ready (no model)')) {
                 $ready = $true
                 break
             }

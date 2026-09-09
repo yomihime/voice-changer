@@ -4,8 +4,9 @@ param(
     [switch]$Lan,
     [switch]$SkipDownloads,
     [switch]$NoBrowser,
-    [ValidateRange(5, 600)]
-    [int]$ReadyTimeoutSeconds = 120
+    [switch]$Browser,
+    [ValidateRange(5, 3600)]
+    [int]$ReadyTimeoutSeconds = 900
 )
 
 $ErrorActionPreference = 'Stop'
@@ -14,58 +15,72 @@ Set-StrictMode -Version Latest
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $windowsScript = Join-Path $PSScriptRoot 'windows.ps1'
 $clientUrl = "http://127.0.0.1:$Port/"
-$infoUrl = "${clientUrl}info"
 $bindHost = if ($Lan) { '0.0.0.0' } else { '127.0.0.1' }
-$serverProcess = $null
-
-function Get-VCClientInfo {
-    try {
-        return Invoke-RestMethod -Uri $infoUrl -Method Get -TimeoutSec 2
-    } catch {
-        return $null
-    }
-}
+$helper = Join-Path $PSScriptRoot 'windows-launcher.ps1'
+. $helper
+$runtimeDirectory = Join-Path $repoRoot '.runtime\launcher'
+$stdoutPath = Join-Path $runtimeDirectory 'server.stdout.log'
+$stderrPath = Join-Path $runtimeDirectory 'server.stderr.log'
+$owner = $null
+$existing = $null
 
 try {
     Set-Location -LiteralPath $repoRoot
-    $existing = Get-VCClientInfo
-    if ($null -ne $existing) {
+    $existing = Get-VCClientEndpointState -Port $Port
+    if ($existing.Kind -in @('ForeignHttp', 'InvalidHttp', 'TcpOnly')) {
+        throw "Port $Port is occupied by an incompatible service ($($existing.Kind))."
+    }
+    if ($existing.IsVCClient) {
         Write-Host "VCClient is already running at $clientUrl" -ForegroundColor Yellow
     } else {
-        $arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$windowsScript`" -Action start -- -p $Port --host $bindHost"
-        if ($SkipDownloads) {
-            $arguments += ' --skip-downloads'
-        }
-
+        New-Item -ItemType Directory -Force -Path $runtimeDirectory | Out-Null
+        Set-Content -LiteralPath $stdoutPath -Value '' -Encoding UTF8
+        Set-Content -LiteralPath $stderrPath -Value '' -Encoding UTF8
         Write-Host "Starting VCClient Server on $bindHost`:$Port ..." -ForegroundColor Cyan
-        # The server console is intentionally visible so a tester can inspect logs and stop it.
-        $serverProcess = Start-Process `
-            -FilePath "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" `
-            -ArgumentList $arguments `
-            -PassThru
-
-        $deadline = [DateTime]::UtcNow.AddSeconds($ReadyTimeoutSeconds)
-        while ($null -eq (Get-VCClientInfo)) {
-            if ($serverProcess.HasExited) {
-                throw "VCClient Server exited before becoming ready (code $($serverProcess.ExitCode))."
+        Write-Host 'Installation/download and server startup may take several minutes.' -ForegroundColor DarkYellow
+        $owner = Start-VCClientServerProcess -WindowsScript $windowsScript -WorkingDirectory $repoRoot `
+            -Port $Port -BindHost $bindHost -SkipDownloads:$SkipDownloads -WindowStyle Hidden `
+            -StandardOutputPath $stdoutPath -StandardErrorPath $stderrPath
+        $wait = Wait-VCClientEndpoint -Port $Port -Owner $owner -TimeoutSeconds $ReadyTimeoutSeconds -ProgressAction {
+            param($state, $elapsed)
+            if ($elapsed.TotalSeconds -lt 1 -or [int]$elapsed.TotalSeconds % 10 -eq 0) {
+                if ($state.Kind -eq 'Closed') { Write-Host 'Installing or starting server...' }
+                elseif ($state.Kind -eq 'TcpOnly') { Write-Host 'Server process is starting...' }
+                elseif ($state.Kind -eq 'HttpTimeout') { Write-Host 'VCClient is loading; still waiting...' }
             }
-            if ([DateTime]::UtcNow -ge $deadline) {
-                throw "VCClient Server did not become ready within $ReadyTimeoutSeconds seconds."
-            }
-            Start-Sleep -Milliseconds 500
         }
-        Write-Host "VCClient Server is ready." -ForegroundColor Green
+        if ($wait.Kind -eq 'PortConflict') { throw "Port $Port returned an incompatible HTTP service." }
+        if ($wait.Kind -eq 'ProcessExited') { throw "VCClient Server exited before becoming ready (code $($wait.ExitCode))." }
+        if ($wait.Kind -eq 'Timeout') { throw "VCClient Server did not become ready within $ReadyTimeoutSeconds seconds. Installation/download may still be incomplete; see $stdoutPath and $stderrPath." }
+        Write-Host "VCClient Server is ready ($($wait.State.Kind))." -ForegroundColor Green
     }
 
     if ($NoBrowser) {
         Write-Host "Client URL: $clientUrl"
-    } else {
-        Write-Host "Opening Client: $clientUrl" -ForegroundColor Cyan
+    } elseif ($Browser) {
+        Write-Host "Opening browser: $clientUrl" -ForegroundColor Cyan
         Start-Process -FilePath $clientUrl
+    } else {
+        Write-Host "Opening Desktop Client: $clientUrl" -ForegroundColor Cyan
+        $desktopProcess = Start-VCClientDesktop -RepositoryRoot $repoRoot -Url $clientUrl -WaitForWindow:($null -ne $owner)
+        if ($null -ne $owner) {
+            $desktopProcess.WaitForExit()
+            if ($desktopProcess.ExitCode -notin @(0, 10)) {
+                throw "Desktop Client exited with code $($desktopProcess.ExitCode)."
+            }
+            $stopped = Stop-VCClientOwnedProcess -Owner $owner
+            if (!$stopped.Success) { throw "Could not stop the owned Server: $($stopped.Error)" }
+            $owner = $null
+        }
     }
     exit 0
 } catch {
+    if ($null -ne $owner -and $owner.OwnsProcess) {
+        $stopped = Stop-VCClientOwnedProcess -Owner $owner
+        if (!$stopped.Success) { Write-Host "WARNING: could not stop owned server process: $($stopped.Error)" -ForegroundColor Yellow }
+    }
     Write-Host "ERROR: $($_.Exception.Message)" -ForegroundColor Red
     Write-Host "Check the Server console for details." -ForegroundColor Yellow
+    if ($null -ne $existing -and $existing.Kind -in @('ForeignHttp', 'InvalidHttp', 'TcpOnly')) { exit 2 }
     exit 1
 }

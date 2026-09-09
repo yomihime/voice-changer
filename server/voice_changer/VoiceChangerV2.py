@@ -11,6 +11,7 @@
 
 from typing import Any, Union
 from threading import RLock
+from uuid import uuid4
 
 from const import TMP_DIR
 import torch
@@ -95,6 +96,14 @@ class VoiceChangerV2(VoiceChangerIF):
         self.mps_enabled: bool = getattr(torch.backends, "mps", None) is not None and torch.backends.mps.is_available()
         self.onnx_device = onnxruntime.get_device()
         self.noCrossFade = False
+        self._host_metrics_epoch = uuid4().hex
+        self._host_request_count = 0
+        self._host_success_count = 0
+        self._host_failure_count = 0
+        self._host_input_samples = 0
+        self._host_output_samples = 0
+        self._host_fallback_samples = 0
+        self._host_last_failure: str | None = None
 
         logger.info(f"VoiceChangerV2 Initialized (GPU_NUM(cuda):{self.gpu_num}, mps_enabled:{self.mps_enabled}, onnx_device:{self.onnx_device})")
 
@@ -111,14 +120,18 @@ class VoiceChangerV2(VoiceChangerIF):
 
     def setInputSampleRate(self, sr: int):
         with self._processing_lock:
+            if self.settings.inputSampleRate == sr:
+                return
+            self.voiceChanger.setSamplingRate(sr, self.settings.outputSampleRate)
             self.settings.inputSampleRate = sr
-            self.voiceChanger.setSamplingRate(self.settings.inputSampleRate, self.settings.outputSampleRate)
             self._reset_output_state()
 
     def setOutputSampleRate(self, sr: int):
         with self._processing_lock:
+            if self.settings.outputSampleRate == sr:
+                return
+            self.voiceChanger.setSamplingRate(self.settings.inputSampleRate, sr)
             self.settings.outputSampleRate = sr
-            self.voiceChanger.setSamplingRate(self.settings.inputSampleRate, self.settings.outputSampleRate)
             self._reset_output_state()
 
     def get_info(self):
@@ -126,7 +139,38 @@ class VoiceChangerV2(VoiceChangerIF):
             data = asdict(self.settings)
             if self.voiceChanger is not None:
                 data.update(self.voiceChanger.get_info())
+            data["hostRuntimeInfo"] = {
+                "metricsEpoch": self._host_metrics_epoch,
+                "requestCount": self._host_request_count,
+                "successCount": self._host_success_count,
+                "failureCount": self._host_failure_count,
+                "inputSamples": self._host_input_samples,
+                # Samples actually returned by VoiceChangerV2. This excludes the
+                # backend-only overlap/search context removed by host SOLA.
+                "outputSamples": self._host_output_samples,
+                "fallbackSamples": self._host_fallback_samples,
+                "lastFailure": self._host_last_failure,
+            }
             return data
+
+    def _record_host_result(
+        self,
+        received_data: AudioInOut,
+        output_data: AudioInOut,
+        performance: list[Union[int, float]],
+        *,
+        failure: Exception | str | None = None,
+    ) -> tuple[AudioInOut, list[Union[int, float]]]:
+        self._host_request_count += 1
+        self._host_input_samples += len(received_data)
+        self._host_output_samples += len(output_data)
+        if failure is None:
+            self._host_success_count += 1
+        else:
+            self._host_failure_count += 1
+            self._host_fallback_samples += len(output_data)
+            self._host_last_failure = str(failure)
+        return output_data, performance
 
     def get_performance(self):
         return self.settings.performance
@@ -144,6 +188,17 @@ class VoiceChangerV2(VoiceChangerIF):
             self.settings.inputSampleRate = 48000
             self.settings.outputSampleRate = 48000
             self.voiceChanger.setSamplingRate(self.settings.inputSampleRate, self.settings.outputSampleRate)
+            self._reset_output_state()
+
+        if key in {"inputSampleRate", "outputSampleRate"}:
+            try:
+                if key == "inputSampleRate":
+                    self.setInputSampleRate(int(val))
+                else:
+                    self.setOutputSampleRate(int(val))
+            except (ValueError, RuntimeError) as exc:
+                logger.warning("[Voice Changer] Sampling rate rejected: %s", exc)
+            return self.get_info()
 
         if key in self.settings.intData:
             setattr(self.settings, key, int(val))
@@ -174,12 +229,25 @@ class VoiceChangerV2(VoiceChangerIF):
         elif key in self.settings.strData:
             setattr(self.settings, key, str(val))
         else:
+            generation = self._stream_generation()
             ret = self.voiceChanger.update_settings(key, val)
-            if ret is True and key in {"gpu", "rvcBackend"}:
+            if (self._stream_generation() != generation or
+                    (generation is None and ret is True and key in {"gpu", "rvcBackend"})):
                 self._reset_output_state()
         return self.get_info()
 
+    def _stream_generation(self):
+        getter = getattr(type(self.voiceChanger), "get_stream_generation", None)
+        return getter(self.voiceChanger) if callable(getter) else None
+
+    def _uses_official_stream(self):
+        getter = getattr(type(self.voiceChanger), "uses_official_stream", None)
+        return callable(getter) and getter(self.voiceChanger)
+
     def _reset_output_state(self) -> None:
+        self._output_generation = self._stream_generation()
+        if hasattr(self, "_official_overlap"):
+            del self._official_overlap
         if hasattr(self, "np_prev_audio1"):
             delattr(self, "np_prev_audio1")
         if hasattr(self, "sola_buffer"):
@@ -229,6 +297,42 @@ class VoiceChangerV2(VoiceChangerIF):
         else:
             return self.voiceChanger.get_processing_sampling_rate()
 
+    def _official_output(self, receivedData: AudioInOut) -> AudioInOut:
+        """One host SOLA over a freshly synthesized absolute-time window."""
+        input_rate = self.settings.inputSampleRate
+        output_rate = self.settings.outputSampleRate
+        # Request the configured context even for a shorter callback. The
+        # backend's time origin must not change with callback length.
+        crossfade_input = self.settings.crossFadeOverlapSize
+        search_input = int(0.012 * input_rate) if crossfade_input else 0
+        context_crossfade = crossfade_input * output_rate // input_rate
+        search = search_input * output_rate // input_rate
+        audio = self.voiceChanger.inference(receivedData, crossfade_input, search_input)
+        generation = self._stream_generation()
+        if generation != getattr(self, "_output_generation", None):
+            self._reset_output_state()
+        block = len(audio) - context_crossfade - search
+        if block <= 0:
+            raise ValueError("Official returned an incomplete host window")
+        crossfade = min(context_crossfade, block)
+        self._generate_strength(crossfade)
+        if crossfade and hasattr(self, "_official_overlap"):
+            self.sola_buffer = self._official_overlap[:crossfade] * self.np_prev_strength
+        offset = 0
+        if crossfade and hasattr(self, "sola_buffer"):
+            overlap = audio[:crossfade + search]
+            numerator = np.convolve(overlap, np.flip(self.sola_buffer), "valid")
+            denominator = np.sqrt(np.convolve(overlap ** 2, np.ones(crossfade), "valid") + 1e-3)
+            offset = int(np.argmax(numerator / denominator))
+        result = audio[offset:offset + block].astype(np.float64)
+        if crossfade:
+            if hasattr(self, "sola_buffer"):
+                result[:crossfade] *= self.np_cur_strength
+                result[:crossfade] += self.sola_buffer
+            self._official_overlap = audio[offset + block:offset + block + context_crossfade].copy()
+            self.sola_buffer = self._official_overlap[:crossfade] * self.np_prev_strength
+        return result
+
     #  receivedData: tuple of short
     def on_request(self, receivedData: AudioInOut) -> tuple[AudioInOut, list[Union[int, float]]]:
         with self._processing_lock:
@@ -241,8 +345,11 @@ class VoiceChangerV2(VoiceChangerIF):
             enableMainprocessTimer = False
             with Timer2("main-process", enableMainprocessTimer) as t:
                 processing_sampling_rate = self.voiceChanger.get_processing_sampling_rate()
+                official = self._uses_official_stream()
 
-                if self.noCrossFade:  # Beatrice, LLVC
+                if official:
+                    result = self._official_output(receivedData)
+                elif self.noCrossFade:  # Beatrice, LLVC
                     audio = self.voiceChanger.inference(
                         receivedData,
                         crossfade_frame=0,
@@ -316,7 +423,9 @@ class VoiceChangerV2(VoiceChangerIF):
 
                 print_convert_processing(f" Output data size of {result.shape[0]}/{processing_sampling_rate}hz {result .shape[0]}/{self.settings.outputSampleRate}hz")
 
-                if receivedData.shape[0] != result.shape[0]:
+                if official:
+                    outputData = result
+                elif receivedData.shape[0] != result.shape[0]:
                     # print("TODO FIX:::::PADDING", receivedData.shape[0], result.shape[0])
                     if self.voiceChanger.voiceChangerType == "LLVC":
                         outputData = result
@@ -336,36 +445,57 @@ class VoiceChangerV2(VoiceChangerIF):
             print_convert_processing(f" [fin] Input/Output size:{receivedData.shape[0]},{outputData.shape[0]}")
             perf = [0, mainprocess_time, postprocess_time]
 
-            return outputData, perf
+            return self._record_host_result(receivedData, outputData, perf)
 
         except NoModeLoadedException as e:
             logger.warn(f"[Voice Changer] [Exception], {e}")
-            return np.zeros(1).astype(np.int16), [0, 0, 0]
+            return self._record_host_result(
+                receivedData, np.zeros(1).astype(np.int16), [0, 0, 0], failure=e
+            )
         except ONNXInputArgumentException as e:
             logger.warn(f"[Voice Changer] [Exception] onnx are waiting valid input., {e}")
-            return np.zeros(1).astype(np.int16), [0, 0, 0]
-        except HalfPrecisionChangingException:
+            return self._record_host_result(
+                receivedData, np.zeros(1).astype(np.int16), [0, 0, 0], failure=e
+            )
+        except HalfPrecisionChangingException as e:
             logger.warn("[Voice Changer] Switching model configuration....")
-            return np.zeros(1).astype(np.int16), [0, 0, 0]
-        except NotEnoughDataExtimateF0:
+            return self._record_host_result(
+                receivedData, np.zeros(1).astype(np.int16), [0, 0, 0], failure=e
+            )
+        except NotEnoughDataExtimateF0 as e:
             logger.warn("[Voice Changer] warming up... waiting more data.")
-            return np.zeros(1).astype(np.int16), [0, 0, 0]
+            return self._record_host_result(
+                receivedData, np.zeros(1).astype(np.int16), [0, 0, 0], failure=e
+            )
         except DeviceChangingException as e:
             logger.warn(f"[Voice Changer] embedder: {e}")
-            return np.zeros(1).astype(np.int16), [0, 0, 0]
-        except VoiceChangerIsNotSelectedException:
+            return self._record_host_result(
+                receivedData, np.zeros(1).astype(np.int16), [0, 0, 0], failure=e
+            )
+        except VoiceChangerIsNotSelectedException as e:
             logger.warn("[Voice Changer] Voice Changer is not selected. Wait a bit and if there is no improvement, please re-select vc.")
-            return np.zeros(1).astype(np.int16), [0, 0, 0]
-        except DeviceCannotSupportHalfPrecisionException:
+            return self._record_host_result(
+                receivedData, np.zeros(1).astype(np.int16), [0, 0, 0], failure=e
+            )
+        except DeviceCannotSupportHalfPrecisionException as e:
             # RVC.pyでfallback処理をするので、ここはダミーデータ返すだけ。
-            return np.zeros(1).astype(np.int16), [0, 0, 0]
-        except PipelineNotInitializedException:
+            return self._record_host_result(
+                receivedData, np.zeros(1).astype(np.int16), [0, 0, 0], failure=e
+            )
+        except PipelineNotInitializedException as e:
             logger.warn("[Voice Changer] Waiting generate pipeline...")
-            return np.zeros(1024).astype(np.int16), [0, 0, 0]
+            return self._record_host_result(
+                receivedData,
+                np.zeros(1024).astype(np.int16),
+                [0, 0, 0],
+                failure=e,
+            )
         except Exception as e:
             logger.warn(f"[Voice Changer] VC PROCESSING EXCEPTION!!! {e}")
             logger.exception(e)
-            return np.zeros(1).astype(np.int16), [0, 0, 0]
+            return self._record_host_result(
+                receivedData, np.zeros(1).astype(np.int16), [0, 0, 0], failure=e
+            )
 
     def export2onnx(self):
         with self._processing_lock:
