@@ -1,16 +1,18 @@
-[اليابانية](/README.md) /
-[الإنجليزية](/docs_i18n/README_en.md) /
-[الكورية](/docs_i18n/README_ko.md)/
-[الصينية](/docs_i18n/README_zh.md)/
-[الألمانية](/docs_i18n/README_de.md)/
-[العربية](/docs_i18n/README_ar.md)/
-[اليونانية](/docs_i18n/README_el.md)/
-[الإسبانية](/docs_i18n/README_es.md)/
-[الفرنسية](/docs_i18n/README_fr.md)/
-[الإيطالية](/docs_i18n/README_it.md)/
-[اللاتينية](/docs_i18n/README_la.md)/
-[الماليزية](/docs_i18n/README_ms.md)/
-[الروسية](/docs_i18n/README_ru.md)
+> 上流由来の参考資料 / Upstream reference. この fork の手順 / Current fork guide: [docs](../../README.md).
+
+[اليابانية](../../../README.md) /
+[الإنجليزية](README_en.md) /
+[الكورية](README_ko.md)/
+[الصينية](README_zh.md)/
+[الألمانية](README_de.md)/
+[العربية](README_ar.md)/
+[اليونانية](README_el.md)/
+[الإسبانية](README_es.md)/
+[الفرنسية](README_fr.md)/
+[الإيطالية](README_it.md)/
+[اللاتينية](README_la.md)/
+[الماليزية](README_ms.md)/
+[الروسية](README_ru.md)
 *جميع اللغات باستثناء اليابانية مترجمة آليًا.
 
 ## VCClient
@@ -110,7 +112,7 @@ VCClient هو برنامج يقوم بتحويل الصوت في الوقت ال
 
 ## استكشاف الأخطاء وإصلاحها
 
-[قسم الاتصال](tutorials/trouble_shoot_communication_ja.md)
+[قسم الاتصال](../../../tutorials/trouble_shoot_communication_ja.md)
 
 ## حول توقيع المطور
 

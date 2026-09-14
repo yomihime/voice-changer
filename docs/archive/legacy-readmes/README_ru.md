@@ -1,4 +1,6 @@
-[Японский](/README_ja.md) [Корейский](/README_ko.md) [Английский](/README_en.md)
+> 上流由来の参考資料 / Upstream reference. この fork の手順 / Current fork guide: [docs](../../README.md).
+
+[Японский](../upstream-readme.md) [Корейский](README_ko.md) [Английский](README_en.md)
 
 ## Что нового!
 - Мы выпустили продукт-сестру - клиент Text To Speech.
@@ -55,7 +57,7 @@
 
 - Вы можете скачать и запустить исполняемые файлы.
 
-- Смотрите [здесь](tutorials/tutorial_rvc_en_latest.md) для получения руководства. ([устранение неполадок](https://github.com/w-okada/voice-changer/blob/master/tutorials/trouble_shoot_communication_ja.md))
+- Смотрите [здесь](../../../tutorials/tutorial_rvc_en_latest.md) для получения руководства. ([устранение неполадок](https://github.com/w-okada/voice-changer/blob/master/tutorials/trouble_shoot_communication_ja.md))
 
 - Теперь попробовать можно на [Google Colaboratory](https://github.com/w-okada/voice-changer/tree/v.2/w_okada's_Voice_Changer_version_2_x.ipynb) (требуется аккаунт ngrok). Вы можете запустить его через кнопку "Открыть в Colab" в верхнем левом углу.
 
@@ -89,11 +91,11 @@
 
 [Видео-инструкция по установке WSL2 и Anaconda](https://youtu.be/fba9Zhsukqw)
 
-Для запуска Docker смотрите [start docker](docker_vcclient/README_en.md).
+Для запуска Docker смотрите [start docker](../../../docker_vcclient/README_en.md).
 
 Для запуска на Anaconda venv смотрите [руководство разработчика](README_dev_ru.md).
 
-Для запуска на Linux с AMD GPU смотрите [руководство](tutorials/tutorial_anaconda_amd_rocm.md).
+Для запуска на Linux с AMD GPU смотрите [руководство](../../../tutorials/tutorial_anaconda_amd_rocm.md).
 
 # Подпись программного обеспечения
 

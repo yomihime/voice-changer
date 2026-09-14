@@ -75,6 +75,10 @@ venv/
 /.venv/
 /build/
 /dist/
+/.architecture-refactor/
+/Codex任务书.md
+/.ruff_cache/
+/.uv-cache/
 
 
 beatrice_internal_api.cp310-win_amd64.pyd

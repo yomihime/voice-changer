@@ -1,8 +1,10 @@
+> 上流由来の参考資料 / Upstream reference. この fork の手順 / Current fork guide: [docs](../../README.md).
+
 ## 開発者向け
 
-[English](/README_dev_en.md)
+[English](README_dev_en.md)
 
-Windows / NVIDIA 向けの手順は[専用ガイド](docs/windows-setup.md)を参照してください。以下は従来の Linux / WSL2 環境向けの手順です。
+Windows / NVIDIA 向けの手順は[専用ガイド](../../windows-setup.md)を参照してください。以下は従来の Linux / WSL2 環境向けの手順です。
 
 ## 前提
 

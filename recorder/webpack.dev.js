@@ -11,7 +11,7 @@ module.exports = merge(common, {
         //     },
         // },
         static: {
-            directory: path.join(__dirname, "../docs"),
+            directory: path.join(__dirname, "dist"),
         },
         headers: {
             "Cross-Origin-Opener-Policy": "same-origin",

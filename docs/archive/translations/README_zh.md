@@ -1,16 +1,18 @@
-[日语](/README.md) /
-[英语](/docs_i18n/README_en.md) /
-[韩语](/docs_i18n/README_ko.md)/
-[中文](/docs_i18n/README_zh.md)/
-[德语](/docs_i18n/README_de.md)/
-[阿拉伯语](/docs_i18n/README_ar.md)/
-[希腊语](/docs_i18n/README_el.md)/
-[西班牙语](/docs_i18n/README_es.md)/
-[法语](/docs_i18n/README_fr.md)/
-[意大利语](/docs_i18n/README_it.md)/
-[拉丁语](/docs_i18n/README_la.md)/
-[马来语](/docs_i18n/README_ms.md)/
-[俄语](/docs_i18n/README_ru.md)
+> 上流由来の参考資料 / Upstream reference. この fork の手順 / Current fork guide: [docs](../../README.md).
+
+[日语](../../../README.md) /
+[英语](README_en.md) /
+[韩语](README_ko.md)/
+[中文](README_zh.md)/
+[德语](README_de.md)/
+[阿拉伯语](README_ar.md)/
+[希腊语](README_el.md)/
+[西班牙语](README_es.md)/
+[法语](README_fr.md)/
+[意大利语](README_it.md)/
+[拉丁语](README_la.md)/
+[马来语](README_ms.md)/
+[俄语](README_ru.md)
 *除日语外，其他语言均为机器翻译。
 
 ## VCClient
@@ -110,7 +112,7 @@ Windows, Mac(M1), Linux, Google Colab
 
 ## 故障排除
 
-[通信篇](tutorials/trouble_shoot_communication_ja.md)
+[通信篇](../../../tutorials/trouble_shoot_communication_ja.md)
 
 ## 关于开发者的签名
 

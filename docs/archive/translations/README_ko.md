@@ -1,16 +1,18 @@
-[일본어](/README.md) /
-[영어](/docs_i18n/README_en.md) /
-[한국어](/docs_i18n/README_ko.md)/
-[중국어](/docs_i18n/README_zh.md)/
-[독일어](/docs_i18n/README_de.md)/
-[아랍어](/docs_i18n/README_ar.md)/
-[그리스어](/docs_i18n/README_el.md)/
-[스페인어](/docs_i18n/README_es.md)/
-[프랑스어](/docs_i18n/README_fr.md)/
-[이탈리아어](/docs_i18n/README_it.md)/
-[라틴어](/docs_i18n/README_la.md)/
-[말레이어](/docs_i18n/README_ms.md)/
-[러시아어](/docs_i18n/README_ru.md)
+> 上流由来の参考資料 / Upstream reference. この fork の手順 / Current fork guide: [docs](../../README.md).
+
+[일본어](../../../README.md) /
+[영어](README_en.md) /
+[한국어](README_ko.md)/
+[중국어](README_zh.md)/
+[독일어](README_de.md)/
+[아랍어](README_ar.md)/
+[그리스어](README_el.md)/
+[스페인어](README_es.md)/
+[프랑스어](README_fr.md)/
+[이탈리아어](README_it.md)/
+[라틴어](README_la.md)/
+[말레이어](README_ms.md)/
+[러시아어](README_ru.md)
 *일본어 외에는 기계 번역입니다.
 
 ## VCClient
@@ -110,7 +112,7 @@ Windows, Mac(M1), Linux, Google Colab
 
 ## 문제 해결
 
-[통신 편](tutorials/trouble_shoot_communication_ja.md)
+[통신 편](../../../tutorials/trouble_shoot_communication_ja.md)
 
 ## 개발자의 서명에 대해
 

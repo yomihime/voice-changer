@@ -1,16 +1,18 @@
-[Lingua Iaponica](/README.md) /
-[Lingua Anglica](/docs_i18n/README_en.md) /
-[Lingua Coreana](/docs_i18n/README_ko.md)/
-[Lingua Sinica](/docs_i18n/README_zh.md)/
-[Lingua Theodisca](/docs_i18n/README_de.md)/
-[Lingua Arabica](/docs_i18n/README_ar.md)/
-[Lingua Graeca](/docs_i18n/README_el.md)/
-[Lingua Hispanica](/docs_i18n/README_es.md)/
-[Lingua Francogallica](/docs_i18n/README_fr.md)/
-[Lingua Italica](/docs_i18n/README_it.md)/
-[Lingua Latina](/docs_i18n/README_la.md)/
-[Lingua Malaica](/docs_i18n/README_ms.md)/
-[Lingua Russica](/docs_i18n/README_ru.md)
+> 上流由来の参考資料 / Upstream reference. この fork の手順 / Current fork guide: [docs](../../README.md).
+
+[Lingua Iaponica](../../../README.md) /
+[Lingua Anglica](README_en.md) /
+[Lingua Coreana](README_ko.md)/
+[Lingua Sinica](README_zh.md)/
+[Lingua Theodisca](README_de.md)/
+[Lingua Arabica](README_ar.md)/
+[Lingua Graeca](README_el.md)/
+[Lingua Hispanica](README_es.md)/
+[Lingua Francogallica](README_fr.md)/
+[Lingua Italica](README_it.md)/
+[Lingua Latina](README_la.md)/
+[Lingua Malaica](README_ms.md)/
+[Lingua Russica](README_ru.md)
 *Praeter linguam Iaponicam, omnes linguae sunt a machina translatae.
 
 ## VCClient
@@ -110,7 +112,7 @@ Etiam per HTTP clientem in OS incorporatum ut curl operari potes.
 
 ## Solutio problematum
 
-[De communicatione](tutorials/trouble_shoot_communication_ja.md)
+[De communicatione](../../../tutorials/trouble_shoot_communication_ja.md)
 
 ## De signature auctoris
 

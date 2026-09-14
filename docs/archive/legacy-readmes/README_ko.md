@@ -1,6 +1,8 @@
+> 上流由来の参考資料 / Upstream reference. この fork の手順 / Current fork guide: [docs](../../README.md).
+
 ## VC Client
 
-[English](/README_en.md) [Korean](/README_ko.md)
+[English](README_en.md) [Korean](README_ko.md)
 
 ## 새로운 기능!
 - 자매품으로 텍스트 음성 변환 클라이언트를 출시하였습니다.
@@ -62,7 +64,7 @@
 
 - 실행 형식 바이너리를 다운로드하여 실행할 수 있습니다.
 
-- 튜토리얼은 [이곳](tutorials/tutorial_rvc_ko_latest.md)을 확인하세요。([네트워크 문제 해결법](https://github.com/w-okada/voice-changer/blob/master/tutorials/trouble_shoot_communication_ko.md))
+- 튜토리얼은 [이곳](../../../tutorials/tutorial_rvc_ko_latest.md)을 확인하세요。([네트워크 문제 해결법](https://github.com/w-okada/voice-changer/blob/master/tutorials/trouble_shoot_communication_ko.md))
 
 - [Google Colaboratory](https://github.com/w-okada/voice-changer/tree/v.2/w_okada's_Voice_Changer_version_2_x.ipynb) で簡単にお試しいただけるようになりました。左上の Open in Colab のボタンから起動できます。
 
@@ -99,13 +101,13 @@
 
 [WSL2와 Anaconda 설치 설명 영상](https://youtu.be/fba9Zhsukqw)
 
-Docker에서 실행은 [Docker를 사용](docker_vcclient/README_ko.md)을 참고해 서버를 구동하세요.
+Docker에서 실행은 [Docker를 사용](../../../docker_vcclient/README_ko.md)을 참고해 서버를 구동하세요.
 
 Anaconda 가상 환경에서 실행은 [서버 개발자용 문서](README_dev_ko.md)를 참고해 서버를 구동하세요.
 
 # 문제 해결법
 
-- [통신편](tutorials/trouble_shoot_communication_ko.md)
+- [통신편](../../../tutorials/trouble_shoot_communication_ko.md)
 
 
 # 개발자 서명에 대하여

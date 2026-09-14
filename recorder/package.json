@@ -4,12 +4,11 @@
     "description": "",
     "main": "backend/dist/index.js",
     "scripts": {
-        "clean": "rimraf ../docs/*",
+        "clean": "rimraf dist",
         "webpack": "webpack --config webpack.prod.js",
         "build": "run-s clean webpack",
         "start": "webpack-dev-server  --config webpack.dev.js",
         "start:backend": "python3 backend/recorderServer.py  8000",
-        "copy": "cp -r ./docs/* ../voice-changer/docs/ && cp ./backend/recorderServer.py ../voice-changer/docs/",
         "test": "echo \"Error: no test specified\" && exit 1"
     },
     "keywords": [],

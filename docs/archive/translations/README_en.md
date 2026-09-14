@@ -1,16 +1,18 @@
-[Japanese](/README.md) /
-[English](/docs_i18n/README_en.md) /
-[Korean](/docs_i18n/README_ko.md)/
-[Chinese](/docs_i18n/README_zh.md)/
-[German](/docs_i18n/README_de.md)/
-[Arabic](/docs_i18n/README_ar.md)/
-[Greek](/docs_i18n/README_el.md)/
-[Spanish](/docs_i18n/README_es.md)/
-[French](/docs_i18n/README_fr.md)/
-[Italian](/docs_i18n/README_it.md)/
-[Latin](/docs_i18n/README_la.md)/
-[Malay](/docs_i18n/README_ms.md)/
-[Russian](/docs_i18n/README_ru.md)
+> 上流由来の参考資料 / Upstream reference. この fork の手順 / Current fork guide: [docs](../../README.md).
+
+[Japanese](../../../README.md) /
+[English](README_en.md) /
+[Korean](README_ko.md)/
+[Chinese](README_zh.md)/
+[German](README_de.md)/
+[Arabic](README_ar.md)/
+[Greek](README_el.md)/
+[Spanish](README_es.md)/
+[French](README_fr.md)/
+[Italian](README_it.md)/
+[Latin](README_la.md)/
+[Malay](README_ms.md)/
+[Russian](README_ru.md)
 *Languages other than Japanese are machine translated.
 
 ## VCClient
@@ -110,7 +112,7 @@ You can also operate it using HTTP clients built into the OS, such as curl.
 
 ## Troubleshoot
 
-[Communication Edition](tutorials/trouble_shoot_communication_ja.md)
+[Communication Edition](../../../tutorials/trouble_shoot_communication_ja.md)
 
 ## About Developer Signature
 

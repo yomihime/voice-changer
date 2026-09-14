@@ -1,8 +1,10 @@
+> 上流由来の参考資料 / Upstream reference. この fork の手順 / Current fork guide: [docs](../../README.md).
+
 Вот перевод файла `README_dev_en.md` на русский язык:
 
 ## Для разработчиков
 
-[Японский](/README_dev_ja.md) [Английский](/README_dev_en.md)
+[Японский](README_dev_ja.md) [Английский](README_dev_en.md)
 
 ## Требования
 

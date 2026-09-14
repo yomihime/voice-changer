@@ -1,8 +1,10 @@
-> For this fork on Windows / NVIDIA, see [installation, startup and portable packaging](docs/windows-setup.md). Use `install-windows.bat`, `start-windows.bat`, and `build-windows.bat` at the repository root.
+> 上流由来の参考資料 / Upstream reference. この fork の手順 / Current fork guide: [docs](../../README.md).
+
+> For this fork on Windows / NVIDIA, see [installation, startup and portable packaging](../../windows-setup.md). Use `install-windows.bat`, `start-windows.bat`, and `build-windows.bat` at the repository root.
 
 ## VC Client
 
-[Japanese](/README_ja.md) [Korean](/README_ko.md) [Russian](/README_ru.md)
+[Japanese](../upstream-readme.md) [Korean](README_ko.md) [Russian](README_ru.md)
 
 ## What's New!
 - We have released a sister product, the Text To Speech client.
@@ -63,7 +65,7 @@ It can be used in two main ways, in order of difficulty:
 
 - You can download and run executable binaries.
 
-- Please see [here](tutorials/tutorial_rvc_en_latest.md) for the tutorial. ([trouble shoot](https://github.com/w-okada/voice-changer/blob/master/tutorials/trouble_shoot_communication_ja.md))
+- Please see [here](../../../tutorials/tutorial_rvc_en_latest.md) for the tutorial. ([trouble shoot](https://github.com/w-okada/voice-changer/blob/master/tutorials/trouble_shoot_communication_ja.md))
 
 - It's now easy to try it out on [Google Colaboratory](https://github.com/w-okada/voice-changer/tree/v.2/w_okada's_Voice_Changer_version_2_x.ipynb) (requires a ngrok account). You can launch it from the 'Open in Colab' button in the top left corner.
 
@@ -99,11 +101,11 @@ Clone this repository and use it. Setting up WSL2 is essential for Windows. Addi
 
 [Explanation video on installing WSL2 and Anaconda](https://youtu.be/fba9Zhsukqw)
 
-To run docker, see [start docker](docker_vcclient/README_en.md).
+To run docker, see [start docker](../../../docker_vcclient/README_en.md).
 
 To run on Anaconda venv, see [server developer's guide](README_dev_en.md)
 
-To run on Linux using an AMD GPU, see [setup guide linux](tutorials/tutorial_anaconda_amd_rocm.md)
+To run on Linux using an AMD GPU, see [setup guide linux](../../../tutorials/tutorial_anaconda_amd_rocm.md)
 
 
 # Software Signing

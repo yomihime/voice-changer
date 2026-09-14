@@ -1,6 +1,8 @@
+> 上流由来の参考資料 / Upstream reference. この fork の手順 / Current fork guide: [docs](../../README.md).
+
 ## 개발자용
 
-[English](/README_dev_en.md) [Korean](/README_dev_ko.md)
+[English](README_dev_en.md) [Korean](README_dev_ko.md)
 
 ## 전제
 

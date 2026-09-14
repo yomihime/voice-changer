@@ -1,16 +1,18 @@
-[Ιαπωνικά](/README.md) /
-[Αγγλικά](/docs_i18n/README_en.md) /
-[Κορεατικά](/docs_i18n/README_ko.md)/
-[Κινέζικα](/docs_i18n/README_zh.md)/
-[Γερμανικά](/docs_i18n/README_de.md)/
-[Αραβικά](/docs_i18n/README_ar.md)/
-[Ελληνικά](/docs_i18n/README_el.md)/
-[Ισπανικά](/docs_i18n/README_es.md)/
-[Γαλλικά](/docs_i18n/README_fr.md)/
-[Ιταλικά](/docs_i18n/README_it.md)/
-[Λατινικά](/docs_i18n/README_la.md)/
-[Μαλαισιανά](/docs_i18n/README_ms.md)/
-[Ρωσικά](/docs_i18n/README_ru.md)
+> 上流由来の参考資料 / Upstream reference. この fork の手順 / Current fork guide: [docs](../../README.md).
+
+[Ιαπωνικά](../../../README.md) /
+[Αγγλικά](README_en.md) /
+[Κορεατικά](README_ko.md)/
+[Κινέζικα](README_zh.md)/
+[Γερμανικά](README_de.md)/
+[Αραβικά](README_ar.md)/
+[Ελληνικά](README_el.md)/
+[Ισπανικά](README_es.md)/
+[Γαλλικά](README_fr.md)/
+[Ιταλικά](README_it.md)/
+[Λατινικά](README_la.md)/
+[Μαλαισιανά](README_ms.md)/
+[Ρωσικά](README_ru.md)
 *Οι γλώσσες εκτός των Ιαπωνικών είναι μεταφρασμένες αυτόματα.
 
 ## VCClient
@@ -110,7 +112,7 @@ Windows, Mac(M1), Linux, Google Colab
 
 ## Αντιμετώπιση προβλημάτων
 
-[Θέματα επικοινωνίας](tutorials/trouble_shoot_communication_ja.md)
+[Θέματα επικοινωνίας](../../../tutorials/trouble_shoot_communication_ja.md)
 
 ## Σχετικά με την υπογραφή του προγραμματιστή
 
