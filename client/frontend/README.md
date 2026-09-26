@@ -17,15 +17,18 @@ npm --prefix client/frontend run dev -- --backend http://127.0.0.1:18000/
 
 | 文件 | 用途 |
 | --- | --- |
-| `src/app.js` | 可执行的恢复代码；保留具名组件、状态 hooks、REST 客户端，可按名称搜索 |
-| `src/app.css`、`src/overrides.css` | 原始样式与本 fork 样式 |
+| `src/main.js` | 本 fork 的启动入口 |
+| `recovered/app.js` | 可执行的恢复代码；保留具名组件、状态 hooks、REST 客户端，可按名称搜索 |
+| `recovered/app.css`、`src/overrides.css` | 原始样式与本 fork 样式 |
 | `src/desktop-adapter.js` | 平台命令适配，避免浏览器 / Electron 调用不存在的 Tauri API |
 | `src/connection-status.js` | 2.x API 连接提示 |
 | `public/` | 翻译、图标、许可证 |
 | `server.cjs` | 浏览器开发和 Electron 共用的静态服务及同源 HTTP/WebSocket 代理 |
+| `assets.json` | 浏览器构建与 Electron 打包共用的资源布局 |
 | `build.cjs` | 零依赖构建与 JS 语法检查；`dist/` 是忽略的生成物 |
 
 具名组件和客户端类的位置见 [代码导航](CODE_INDEX.md)。
+恢复 bundle、原始 CSS 与 ponyfill 位于 `recovered/`；手写适配、连接提示和覆盖样式位于 `src/`。
 今后应逐步把应用组件从恢复代码抽成独立模块；不要编辑逆向目录中的参考摘录，
 它们没有完整依赖，也不会进入构建。
 
@@ -62,6 +65,6 @@ python scripts/desktop.py verify
 - 麦克风沿用 Electron 的授权与隔离策略；浏览器模式依赖浏览器自身权限。
 - 全局快捷键与 Tauri 浮窗尚未移植，设置默认关闭，不会伪装成注册成功。
 - 清除界面缓存会清除 Web Storage / Cache Storage 并重载界面，不会停止独立后端。
-- 本次收尾不自动启动服务、采集麦克风或加载个人模型。
+- 日志在受控的同源 Electron 子窗口内打开，随主窗口关闭；日志窗口不获得麦克风权限。
 
 官方示例音频不是变声必需项，默认样例列表为空。个人模型、截图、推理输出与麦克风测试资料不纳入版本管理。

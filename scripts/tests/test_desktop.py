@@ -56,7 +56,8 @@ class DesktopArchiveTest(unittest.TestCase):
             desktop.copy_frontend(Path(folder))
             self.assertTrue((Path(folder) / "frontend/server.cjs").is_file())
             dist = Path(folder) / "frontend/dist"
-            self.assertTrue((dist / "src/app.js").is_file())
+            self.assertTrue((dist / "recovered/app.js").is_file())
+            self.assertTrue((dist / "src/main.js").is_file())
             self.assertTrue((dist / "assets/i18n/zh/translation.json").is_file())
             self.assertTrue((dist / "licenses-js.json").is_file())
 

@@ -29,6 +29,14 @@ function externalUrl(value) {
   } catch { return null; }
 }
 
+function logViewerUrl(value, origin) {
+  if (!sameOrigin(value, origin)) return null;
+  const url = new URL(value);
+  return url.pathname === '/' && !url.hash &&
+    url.searchParams.size === 1 && url.searchParams.get('app_mode') === 'LogViewer'
+    ? url.href : null;
+}
+
 function parseArgs(args) {
   const options = { denyMedia: false };
   for (let i = 0; i < args.length; i++) {
@@ -66,4 +74,4 @@ function audioRequestAllowed(permission, details, origin) {
     details.mediaTypes.length > 0 && details.mediaTypes.every(type => type === 'audio');
 }
 
-module.exports = { serverUrl, sameOrigin, externalUrl, parseArgs, profileDirectory, audioRequestAllowed };
+module.exports = { serverUrl, sameOrigin, externalUrl, logViewerUrl, parseArgs, profileDirectory, audioRequestAllowed };

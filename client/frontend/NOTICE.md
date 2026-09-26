@@ -4,10 +4,12 @@
 `vcclient_win_cuda_2.1.4-alpha.zip` 中实际入口 `dist/main/web_front/index.html`。
 压缩包 SHA-256：`58ced135e0768a9f382461fab13a8967520fde2d307d39c0ab4b830040f9c70f`。
 
-`src/app.js` 是发布版 `assets/index-D8G8J-aW.js` 格式化后的 JavaScript，
+`recovered/app.js` 是发布版 `assets/index-D8G8J-aW.js` 格式化后的 JavaScript，
 包含 React、MUI 等上游运行库与应用代码。它不是原作者的 TypeScript/TSX 源码。
 本 fork 添加平台适配模块、连接提示，并替换 invoke / listen 的平台入口。
-`src/app.css` 来自 `index-GtP8_cVt.css`；ponyfill 和 public 资源来自同一发布包。
+`recovered/app.css` 来自 `index-GtP8_cVt.css`；ponyfill 和 public 资源来自同一发布包。
+恢复资源集中在 `recovered/`，本 fork 的启动、平台适配和覆盖样式位于 `src/`。
+ponyfill 对主 bundle 的相对引用已按恢复后的文件名修正为 `./app.js`。
 只保留实际入口所需的一组 JS/CSS，没有将发布包内其他历史构建纳入正式前端。
 
 保留上游版权注释、`licenses-js.json`、`licenses-py.json` 和

@@ -2,7 +2,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const path = require('node:path');
-const { serverUrl, sameOrigin, externalUrl, parseArgs, profileDirectory, audioRequestAllowed } = require('../policy.cjs');
+const { serverUrl, sameOrigin, externalUrl, logViewerUrl, parseArgs, profileDirectory, audioRequestAllowed } = require('../policy.cjs');
 
 test('only the exact loopback HTTP entry is accepted', () => {
   assert.equal(serverUrl('http://127.0.0.1:18888/'), 'http://127.0.0.1:18888/');
@@ -22,6 +22,15 @@ test('navigation keeps exact origin and rejects credentials', () => {
   assert.equal(sameOrigin('http://127.0.0.1:18889/', origin), false);
   assert.equal(sameOrigin('http://user@127.0.0.1:18888/', origin), false);
   assert.equal(sameOrigin('not a url', origin), false);
+});
+
+test('only the same-origin log viewer may open an auxiliary window', () => {
+  const origin = 'http://127.0.0.1:21416';
+  assert.equal(logViewerUrl(`${origin}/?app_mode=LogViewer`, origin), `${origin}/?app_mode=LogViewer`);
+  for (const value of [`${origin}/`, `${origin}/?app_mode=Main`,
+    `${origin}/?app_mode=LogViewer&url=https://evil/`, `${origin}/other?app_mode=LogViewer`,
+    'http://127.0.0.1:21417/?app_mode=LogViewer', 'file:///a?app_mode=LogViewer',
+    'http://user@127.0.0.1:21416/?app_mode=LogViewer']) assert.equal(logViewerUrl(value, origin), null);
 });
 test('strict CLI rejects old Electron switches and duplicate options', () => {
   assert.equal(parseArgs(['--url', 'http://127.0.0.1:18888/', '--deny-media']).denyMedia, true);

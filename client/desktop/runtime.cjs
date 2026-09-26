@@ -6,6 +6,7 @@ const path = require('node:path');
 const net = require('node:net');
 const crypto = require('node:crypto');
 const { serverUrl, sameOrigin, externalUrl, profileDirectory, audioRequestAllowed } = require('./policy.cjs');
+const { installWindowNavigation } = require('./window-navigation.cjs');
 
 async function startDesktop(options, hooks = {}) {
   let url = serverUrl(options.backend || options.url);
@@ -138,17 +139,7 @@ async function startDesktop(options, hooks = {}) {
       if (!options.hidden) dialog.showErrorBox('VCClient Desktop', `リンクを開けませんでした。\n${error.message}`);
     }
   };
-  win.webContents.setWindowOpenHandler(details => {
-    if (sameOrigin(win.webContents.getURL(), origin)) void openExternal(details.url);
-    return { action: 'deny' };
-  });
-  win.webContents.on('will-frame-navigate', event => {
-    if (!sameOrigin(event.url, origin)) event.preventDefault();
-  });
-  win.webContents.on('will-redirect', (event, target) => {
-    if (!sameOrigin(target, origin)) event.preventDefault();
-  });
-  win.webContents.on('will-attach-webview', event => event.preventDefault());
+  installWindowNavigation(win, { origin, openExternal, hidden: options.hidden });
   win.webContents.on('page-title-updated', event => {
     event.preventDefault();
     win.setTitle('VCClient Desktop');

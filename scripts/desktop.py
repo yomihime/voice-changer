@@ -15,15 +15,16 @@ import uuid
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
-APP_FILES = ("package.json", "main.cjs", "runtime.cjs", "policy.cjs", "self-test.cjs", "frontend-self-test.cjs", "icon.png", "README.md")
+APP_FILES = ("package.json", "main.cjs", "runtime.cjs", "policy.cjs", "window-navigation.cjs", "self-test.cjs", "frontend-self-test.cjs", "icon.png", "README.md")
 EXECUTABLE = "vcclient-desktop.exe"
 
 
 def frontend_files(root=ROOT):
     """Explicit source inputs: no model, profile, reverse-engineering or dist trees."""
     source = Path(root) / "client/frontend"
-    files = [source / name for name in ("index.html", "NOTICE.md", "server.cjs")]
-    for folder in ("src", "public"):
+    assets = json.loads((source / "assets.json").read_text(encoding="utf-8"))
+    files = [source / name for name in (*assets["files"], "server.cjs", "assets.json")]
+    for folder in assets["directories"]:
         files.extend(sorted((source / folder).rglob("*")))
     return [path for path in files if path.is_file() and not path.is_symlink()]
 
@@ -31,12 +32,13 @@ def frontend_files(root=ROOT):
 def copy_frontend(application, root=ROOT):
     source = Path(root) / "client/frontend"
     destination = Path(application) / "frontend"
+    assets = json.loads((source / "assets.json").read_text(encoding="utf-8"))
     for file in frontend_files(root):
         relative = file.relative_to(source)
-        if relative.as_posix() == "server.cjs":
+        if relative.as_posix() in ("server.cjs", "assets.json"):
             output = destination / relative
-        elif relative.parts[0] == "public":
-            output = destination / "dist" / Path(*relative.parts[1:])
+        elif relative.parts[0] in assets["directories"]:
+            output = destination / "dist" / assets["directories"][relative.parts[0]] / Path(*relative.parts[1:])
         else:
             output = destination / "dist" / relative
         output.parent.mkdir(parents=True, exist_ok=True)

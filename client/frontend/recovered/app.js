@@ -1,6 +1,6 @@
 // Recovered 2.1.4-alpha executable JavaScript; see ../NOTICE.md.
-import { invokeDesktop, listenDesktop } from "./desktop-adapter.js";
-import "./connection-status.js";
+import { invokeDesktop, listenDesktop } from "../src/desktop-adapter.js";
+// Fork-owned startup lives in ../src/main.js.
 function _mergeNamespaces(S, C) {
   for (var E = 0; E < C.length; E++) {
     const w = C[E];
