@@ -50,6 +50,27 @@ python scripts/desktop.py verify
 
 ポータブル ZIP には検証済み Electron 実行環境（`Electron 44.2.0`）を含めます。`node.exe`、Rust、MSVC、WebView2 は配布先で不要です。Desktop Client の設定は `%LOCALAPPDATA%/Yomihime/VoiceChanger/Desktop/` に保存され、原作者版の設定とは分離されます。マイクは Client 内の確認ダイアログで許可した場合だけ使用します。
 
+## 独立した新フロントエンドの開発
+
+2.1.4-alpha 由来の新フロントエンドは
+[voice-changer-client](https://github.com/yomihime/voice-changer-client) で管理します。
+このリポジトリでは `client/frontend` を Git submodule として参照します。
+Server のインストール、起動、パッケージ作成には子モジュールの取得もビルドも不要です。
+`client/demo` / `client/lib` と既存 Electron Client は従来の Server UI 用です。
+
+```powershell
+git submodule update --init client/frontend
+cd client/frontend
+npm ci
+npm run build
+npm run dev
+```
+
+接続設定と必要な Node 環境は新リポジトリの README を参照してください。
+出力は新リポジトリ内の `dist/` に置きます。新クライアントの配布方式は独立して決定します。
+旧 `build-frontend-windows.bat` / `start-frontend-windows.bat` は移行案内のみを表示し、
+Electron のビルドや新 UI の起動は行いません。
+
 ## Voice Changer Server GUI
 
 `server-gui-windows.bat` から **Voice Changer Server** を開きます。

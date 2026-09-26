@@ -66,13 +66,12 @@ Electron と Chromium のライセンスは同梱の各ファイルを参照し�
 参考: [Electron 配布方法](https://www.electronjs.org/docs/latest/tutorial/application-distribution)、
 [セキュリティ](https://www.electronjs.org/docs/latest/tutorial/security)、
 [BrowserWindow](https://www.electronjs.org/docs/latest/api/browser-window)。
-# 新前端入口
+## 新前端已独立
 
-桌面壳现已内置 [`client/frontend`](../frontend/README.md) 中的 2.1.4-alpha 恢复基线。
-无参数启动默认连接 `http://127.0.0.1:18000/`，也可传 `--backend URL`。
-新界面由 Electron 进程内的本地代理在 21416 端口提供，随窗口退出关闭。
-`--url URL` 保留原有加载后端页面的路径，不能与 `--backend` 同时使用。
+本目录仅保留旧 Server UI 的 Electron 壳，必须用 `--url` 指定服务地址。
+Windows Server 启动器会传入正确地址。`--backend` 和内嵌新前端已移除。
 
-在根目录运行 `build-frontend-windows.bat` 生成包含前端的独立桌面 ZIP；
-`start-frontend-windows.bat --backend http://127.0.0.1:18000/` 启动。
-此包不含推理后端与模型，2.x API 和全局快捷键移植状态见前端 README。
+新前端在公开仓库 [voice-changer-client](https://github.com/yomihime/voice-changer-client)
+独立开发，通过父仓库的 `client/frontend` 子模块引用。
+它在自身仓库内执行开发、测试和构建，不依赖本 Electron 壳或 `scripts/desktop.py`。
+后续桌面打包方式由新客户端仓库决定。

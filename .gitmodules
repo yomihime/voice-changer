@@ -1,0 +1,4 @@
+[submodule "client/frontend"]
+	path = client/frontend
+	url = https://github.com/yomihime/voice-changer-client.git
+	branch = main

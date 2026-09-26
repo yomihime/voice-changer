@@ -9,8 +9,8 @@ const { serverUrl, sameOrigin, externalUrl, profileDirectory, audioRequestAllowe
 const { installWindowNavigation } = require('./window-navigation.cjs');
 
 async function startDesktop(options, hooks = {}) {
-  let url = serverUrl(options.backend || options.url);
-  let origin = new URL(url).origin;
+  const url = serverUrl(options.url);
+  const origin = new URL(url).origin;
   // In a package the application lives in <repo>/.runtime/desktop/resources/app.
   // In a packaged build app/resources/app is four levels below the checkout;
   // during source runs client/desktop is only two levels below it.
@@ -18,7 +18,7 @@ async function startDesktop(options, hooks = {}) {
     app.isPackaged ? '../../../..' : '../..'));
   const root = options.profileRoot || path.join(process.env.LOCALAPPDATA || app.getPath('appData'),
     'Yomihime', 'VoiceChanger', 'Desktop');
-  const profile = profileDirectory(root, installation, origin + (options.backend ? '/frontend-v214' : ''));
+  const profile = profileDirectory(root, installation, origin);
   fs.mkdirSync(profile, { recursive: true });
   app.setName('VCClient Desktop');
   app.setAppUserModelId('io.github.yomihime.voicechanger.desktop');
@@ -56,17 +56,6 @@ async function startDesktop(options, hooks = {}) {
     lifetime.close();
     for (const socket of waiters) socket.end();
   });
-
-  if (options.backend) {
-    const frontendRoot = app.isPackaged ? path.join(__dirname, 'frontend') : path.join(__dirname, '../frontend');
-    const { startFrontend } = require(path.join(frontendRoot, 'server.cjs'));
-    const frontend = await startFrontend({
-      directory: path.join(frontendRoot, 'dist'), backend: options.backend, port: 21416,
-    });
-    url = frontend.url;
-    origin = new URL(url).origin;
-    app.on('before-quit', () => { void frontend.close(); });
-  }
 
   let win;
   app.on('second-instance', () => {

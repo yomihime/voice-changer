@@ -34,8 +34,8 @@ test('only the same-origin log viewer may open an auxiliary window', () => {
 });
 test('strict CLI rejects old Electron switches and duplicate options', () => {
   assert.equal(parseArgs(['--url', 'http://127.0.0.1:18888/', '--deny-media']).denyMedia, true);
-  assert.equal(parseArgs([]).backend, 'http://127.0.0.1:18000/');
-  assert.equal(parseArgs(['--backend', 'http://127.0.0.1:18001']).backend, 'http://127.0.0.1:18001/');
+  assert.throws(() => parseArgs([]), /--url/);
+  assert.throws(() => parseArgs(['--backend', 'http://127.0.0.1:18001']));
   for (const args of [['--url', 'http://127.0.0.1/', '--backend', 'http://127.0.0.1/'], ['-u', 'http://127.0.0.1/'], ['--url'],
     ['--url', 'http://127.0.0.1/', '--url', 'http://127.0.0.1/'],
     ['--url', 'http://127.0.0.1/', '--profile-root', 'relative']]) assert.throws(() => parseArgs(args));

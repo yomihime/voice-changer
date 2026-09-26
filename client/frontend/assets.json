@@ -1,4 +1,0 @@
-{
-  "files": ["index.html", "NOTICE.md"],
-  "directories": { "src": "src", "recovered": "recovered", "public": "." }
-}

@@ -36,6 +36,18 @@ class DistributionBoundaryTest(unittest.TestCase):
         self.assertIn("scripts/start-client.ps1", manage.PACKAGE_SUPPORT_FILES)
         self.assertIn("scripts/windows-launcher.ps1", manage.PACKAGE_SUPPORT_FILES)
 
+    def test_legacy_build_never_runs_in_the_independent_client(self):
+        with patch.object(manage, "node_environment", return_value=("npm", {})), \
+                patch.object(manage, "run") as run, \
+                patch.object(manage, "file_hash", return_value="same"), \
+                patch.object(manage, "frontend_fingerprint", return_value="fingerprint"), \
+                patch.object(Path, "is_file", return_value=True), \
+                patch.object(Path, "write_text"):
+            manage.build_frontend()
+        self.assertEqual({call.kwargs["cwd"] for call in run.call_args_list},
+                         {manage.ROOT / "client/lib", manage.ROOT / "client/demo"})
+        self.assertNotIn("start-frontend-windows.bat", manage.PACKAGE_SUPPORT_FILES)
+
     def test_server_gui_is_packaged(self):
         self.assertIn("server-gui-windows.bat", manage.PACKAGE_SUPPORT_FILES)
         self.assertIn("scripts/server-gui.ps1", manage.PACKAGE_SUPPORT_FILES)

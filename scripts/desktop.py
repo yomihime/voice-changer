@@ -1,4 +1,4 @@
-"""Assemble the Windows desktop client from a pinned official Electron archive.
+"""Assemble the legacy Server UI shell from a pinned official Electron archive.
 
 Only Python's standard library is needed; no npm installs or C++/Rust compiler.
 """
@@ -15,34 +15,8 @@ import uuid
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
-APP_FILES = ("package.json", "main.cjs", "runtime.cjs", "policy.cjs", "window-navigation.cjs", "self-test.cjs", "frontend-self-test.cjs", "icon.png", "README.md")
+APP_FILES = ("package.json", "main.cjs", "runtime.cjs", "policy.cjs", "window-navigation.cjs", "self-test.cjs", "icon.png", "README.md")
 EXECUTABLE = "vcclient-desktop.exe"
-
-
-def frontend_files(root=ROOT):
-    """Explicit source inputs: no model, profile, reverse-engineering or dist trees."""
-    source = Path(root) / "client/frontend"
-    assets = json.loads((source / "assets.json").read_text(encoding="utf-8"))
-    files = [source / name for name in (*assets["files"], "server.cjs", "assets.json")]
-    for folder in assets["directories"]:
-        files.extend(sorted((source / folder).rglob("*")))
-    return [path for path in files if path.is_file() and not path.is_symlink()]
-
-
-def copy_frontend(application, root=ROOT):
-    source = Path(root) / "client/frontend"
-    destination = Path(application) / "frontend"
-    assets = json.loads((source / "assets.json").read_text(encoding="utf-8"))
-    for file in frontend_files(root):
-        relative = file.relative_to(source)
-        if relative.as_posix() in ("server.cjs", "assets.json"):
-            output = destination / relative
-        elif relative.parts[0] in assets["directories"]:
-            output = destination / "dist" / assets["directories"][relative.parts[0]] / Path(*relative.parts[1:])
-        else:
-            output = destination / "dist" / relative
-        output.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(file, output)
 
 
 def file_hash(path):
@@ -62,7 +36,6 @@ def source_fingerprint(root=ROOT):
     digest = hashlib.sha256()
     files = [root / "client/desktop" / name for name in (*APP_FILES, "electron-runtime.json")]
     files += [root / "scripts/desktop.py", root / "LICENSE"]
-    files += frontend_files(root)
     for path in files:
         digest.update(path.relative_to(root).as_posix().encode())
         digest.update(bytes.fromhex(file_hash(path)))
@@ -171,7 +144,6 @@ def build(root=ROOT, archive=None):
         for name in APP_FILES:
             shutil.copyfile(root / "client/desktop" / name, application / name)
         shutil.copyfile(root / "LICENSE", application / "LICENSE")
-        copy_frontend(application, root)
         manifest = {
             "electron": spec, "sourceFingerprint": fingerprint,
             "files": {path.relative_to(stage).as_posix(): file_hash(path)

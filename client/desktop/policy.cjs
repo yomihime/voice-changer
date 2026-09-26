@@ -44,18 +44,16 @@ function parseArgs(args) {
     if (key === '--deny-media') { options.denyMedia = true; continue; }
     if (key === '--wait') { options.wait = true; continue; }
     if (key === '--hidden') { options.hidden = true; continue; }
-    if (!['--url', '--backend', '--profile-root'].includes(key) || !args[i + 1] || args[i + 1].startsWith('--')) {
+    if (!['--url', '--profile-root'].includes(key) || !args[i + 1] || args[i + 1].startsWith('--')) {
       throw new Error(`不明または値のない引数: ${key}`);
     }
-    const name = key === '--url' ? 'url' : key === '--backend' ? 'backend' : 'profileRoot';
+    const name = key === '--url' ? 'url' : 'profileRoot';
     if (options[name]) throw new Error(`重複した引数: ${key}`);
     options[name] = args[++i];
   }
-  if (!options.url && !options.backend) options.backend = 'http://127.0.0.1:18000/';
-  if (options.url && options.backend) throw new Error('Use either --backend (new UI) or --url (server UI).');
+  if (!options.url) throw new Error('Specify the running legacy Server with --url http://127.0.0.1:<port>/');
   if (options.hidden && !options.denyMedia) throw new Error('--hidden は --deny-media と併用してください。');
   if (options.url) options.url = serverUrl(options.url);
-  if (options.backend) options.backend = serverUrl(options.backend);
   if (options.profileRoot && !path.isAbsolute(options.profileRoot)) {
     throw new Error('--profile-root は絶対パスを指定してください。');
   }

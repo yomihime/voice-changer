@@ -2,11 +2,15 @@
 
 ## 製品の構成
 
-今後のフロントエンド開発は [`client/frontend`](../client/frontend/README.md) を入口とします。
-2.1.4-alpha 配布版から復元した JavaScript を Electron に同梱し、同一オリジンの
-HTTP / WebSocket プロキシで外部 2.x Server に接続します。
-既存 Server の `/info` API との互換アダプターは未実装です。
-下図の `client/demo` / `client/lib` は既存 Server 用の経路として残っています。
+新フロントエンドは公開リポジトリ
+[voice-changer-client](https://github.com/yomihime/voice-changer-client) で独立して開発し、
+このリポジトリからは `client/frontend` Git submodule として固定コミットを参照します。
+2.1.4-alpha 配布版の復元成果を参考に、ページ・状態管理・API を分割して保守します。
+開発・テスト・ビルドは新リポジトリ内で完結し、本リポジトリのインストールや
+配布処理は新フロントエンドをビルド・同梱しません。Electron は移管していません。
+新フロントエンドは外部 2.x Server 用で、既存 Server の `/info` API との互換
+アダプターは未実装です。下図の `client/demo` / `client/lib` と Electron は
+既存 Server 用の経路として残っています。
 
 VCClient は、画面・音声デバイス・モデル管理と、推論バックエンドを組み合わせたリアルタイム音声変換アプリケーションです。
 

@@ -24,7 +24,6 @@ VERSIONS = json.loads((ROOT / "scripts/runtime-versions.json").read_text(encodin
 PACKAGE_SUPPORT_FILES = (
     "start-windows.bat",
     "start-client-windows.bat",
-    "start-frontend-windows.bat",
     "server-gui-windows.bat",
     "scripts/windows.ps1",
     "scripts/windows-launcher.ps1",
@@ -85,6 +84,7 @@ def node_environment():
 
 
 def frontend_fingerprint():
+    """Fingerprint only client/lib and client/demo, never the independent client."""
     digest = hashlib.sha256()
     for part in ("lib", "demo"):
         folder = ROOT / "client" / part
@@ -99,6 +99,7 @@ def frontend_fingerprint():
 
 
 def build_frontend():
+    """Build the legacy Server UI; client/frontend owns its separate build."""
     npm, env = node_environment()
     run([npm, "ci", "--no-audit", "--no-fund"], cwd=ROOT / "client/lib", env=env)
     run([npm, "run", "build:prod"], cwd=ROOT / "client/lib", env=env)
@@ -158,7 +159,7 @@ def check():
 
 
 def build_desktop():
-    """Assemble the pinned Electron runtime used by the default Windows client."""
+    """Assemble the pinned Electron runtime used by the legacy Windows client."""
     run([sys.executable, ROOT / "scripts/desktop.py", "build"])
 
 

@@ -44,22 +44,23 @@ class DesktopArchiveTest(unittest.TestCase):
         self.assertNotIn("node_modules", desktop.APP_FILES)
         self.assertIn("runtime.cjs", desktop.APP_FILES)
 
-    def test_frontend_is_self_contained_and_included_in_source_fingerprint(self):
-        root = desktop.ROOT
-        sources = desktop.frontend_files(root)
-        self.assertTrue(any(p.name == "app.js" for p in sources))
-        self.assertFalse(any("reverse_engineering" in p.parts or "dist" in p.parts for p in sources))
-        before = desktop.source_fingerprint()
-        with patch.object(desktop, "frontend_files", return_value=[]):
-            self.assertNotEqual(before, desktop.source_fingerprint())
+    def test_build_inputs_do_not_require_the_independent_client(self):
+        # A server-only checkout without the submodule must still fingerprint.
         with tempfile.TemporaryDirectory() as folder:
-            desktop.copy_frontend(Path(folder))
-            self.assertTrue((Path(folder) / "frontend/server.cjs").is_file())
-            dist = Path(folder) / "frontend/dist"
-            self.assertTrue((dist / "recovered/app.js").is_file())
-            self.assertTrue((dist / "src/main.js").is_file())
-            self.assertTrue((dist / "assets/i18n/zh/translation.json").is_file())
-            self.assertTrue((dist / "licenses-js.json").is_file())
+            root = Path(folder)
+            for name in (*desktop.APP_FILES, "electron-runtime.json"):
+                target = root / "client/desktop" / name
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_text("fixture", encoding="utf-8")
+            (root / "scripts").mkdir()
+            (root / "scripts/desktop.py").write_text("fixture", encoding="utf-8")
+            (root / "LICENSE").write_text("fixture", encoding="utf-8")
+            before = desktop.source_fingerprint(root)
+            client = root / "client/frontend/recovered/app.js"
+            client.parent.mkdir(parents=True)
+            client.write_text("independently maintained", encoding="utf-8")
+            self.assertEqual(before, desktop.source_fingerprint(root))
+        self.assertNotIn("frontend-self-test.cjs", desktop.APP_FILES)
 
 
 if __name__ == "__main__":

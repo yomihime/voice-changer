@@ -17,7 +17,7 @@ Recorder（音声収録ツール）は保守対象外です。ソースは履歴
 
 ## ドキュメント
 
-- [新前端（2.1.4-alpha）开发、Electron 启动与打包](client/frontend/README.md)：后续前端开发入口。
+- [独立新前端 voice-changer-client](https://github.com/yomihime/voice-changer-client)：通过 `client/frontend` 子模块引用，在该仓库内独立开发和构建；不包含本仓库的 Electron 壳。
 
 - [インストール・起動・パッケージ作成](docs/windows-setup.md)
 - [ドキュメント一覧・ディレクトリ案内](docs/README.md)
