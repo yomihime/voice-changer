@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+from importlib import metadata
 import json
 import os
+import re
 from pathlib import Path
 import shutil
 import subprocess
@@ -17,6 +19,7 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[1]
 RUNTIME = ROOT / ".runtime"
 LOCK = ROOT / "server/requirements/windows-cuda.lock"
+GUI_LOCK = ROOT / "server/requirements/windows-gui.lock"
 VERSIONS = json.loads((ROOT / "scripts/runtime-versions.json").read_text(encoding="utf-8"))
 PACKAGE_SUPPORT_FILES = (
     "start-windows.bat",
@@ -27,16 +30,19 @@ PACKAGE_SUPPORT_FILES = (
     "scripts/windows-launcher.ps1",
     "scripts/start-client.ps1",
     "scripts/server-gui.ps1",
+    "scripts/server_gui.py",
+    "scripts/server_gui/__init__.py",
+    "scripts/server_gui/app.py",
+    "scripts/server_gui/view.py",
+    "scripts/server_gui/runtime.py",
     "scripts/desktop.py",
     "scripts/manage.py",
     "scripts/check_environment.py",
     "scripts/runtime-versions.json",
     "server/requirements/windows-cuda.lock",
+    "server/requirements/windows-gui.lock",
+    "docs/server-gui.md",
     "docs/windows-setup.md",
-)
-DESKTOP_APP_FILES = (
-    "package.json", "main.cjs", "runtime.cjs", "policy.cjs", "self-test.cjs", "frontend-self-test.cjs", "icon.png",
-    "electron-runtime.json", "README.md",
 )
 
 
@@ -112,7 +118,7 @@ def install():
     if sys.version_info[:2] != (3, 12) or Path(sys.prefix).resolve() != (ROOT / ".venv").resolve():
         raise RuntimeError("Run install-windows.bat to use the repository's Python 3.12 virtual environment")
     uv = RUNTIME / "uv/uv.exe"
-    run([uv, "pip", "sync", LOCK, "--python", sys.executable, "--require-hashes",
+    run([uv, "pip", "sync", LOCK, GUI_LOCK, "--python", sys.executable, "--require-hashes",
          "--index", VERSIONS["torch_index"], "--index-strategy", "unsafe-best-match"])
     run([uv, "pip", "check", "--python", sys.executable])
     build_frontend()
@@ -120,6 +126,31 @@ def install():
     check()
     (RUNTIME / "installed.sha256").write_text(file_hash(LOCK), encoding="ascii")
     print("Installation verified. Run start-windows.bat.")
+
+
+def gui_dependencies_ready():
+    """Check the pinned UI distributions without loading Qt or CUDA."""
+    for name, version in re.findall(r"^([A-Za-z0-9_.-]+)==([^\s]+)", GUI_LOCK.read_text(encoding="utf-8"), re.MULTILINE):
+        try:
+            if metadata.version(name) != version:
+                return False
+        except metadata.PackageNotFoundError:
+            return False
+    return True
+
+
+def install_gui():
+    if gui_dependencies_ready():
+        return
+    if (RUNTIME / "portable/python.exe").is_file():
+        raise RuntimeError("Portable GUI dependencies are incomplete; restore the complete distribution.")
+    if Path(sys.prefix).resolve() != (ROOT / ".venv").resolve():
+        raise RuntimeError("GUI installation requires the repository virtual environment.")
+    run([RUNTIME / "uv/uv.exe", "pip", "install", "--python", sys.executable,
+         "--require-hashes", "-r", GUI_LOCK, "--index-url", "https://pypi.org/simple/"],
+        env={**os.environ, "UV_CACHE_DIR": str(RUNTIME / "cache")})
+    if not gui_dependencies_ready():
+        raise RuntimeError("Voice Changer Server GUI dependency verification failed.")
 
 
 def check():
@@ -206,6 +237,7 @@ def application_files():
 
 def build(output):
     ensure_installed()
+    install_gui()
     check()
     build_desktop()
     if Path(sys.prefix).resolve() != (ROOT / ".venv").resolve():
@@ -244,6 +276,7 @@ def build(output):
         run([portable / "python.exe", stage / "scripts/check_environment.py"], cwd=stage / "server")
         print("Creating the file manifest and ZIP archive...", flush=True)
         manifest = {"python": VERSIONS["python"], "requirementsSha256": file_hash(LOCK),
+                    "guiRequirementsSha256": file_hash(GUI_LOCK),
                     "files": {p.relative_to(stage).as_posix(): file_hash(p)
                               for p in sorted(stage.rglob("*")) if p.is_file() and "__pycache__" not in p.parts}}
         (stage / "package-manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
@@ -263,12 +296,15 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="action", required=True)
     sub.add_parser("install")
+    sub.add_parser("gui-install")
     sub.add_parser("check")
     sub.add_parser("start").add_argument("server_args", nargs=argparse.REMAINDER)
     sub.add_parser("build").add_argument("--output", type=Path, default=ROOT / "dist/vcclient-windows-cuda.zip")
     args = parser.parse_args()
     if args.action == "install":
         install()
+    elif args.action == "gui-install":
+        install_gui()
     elif args.action == "check":
         check()
     elif args.action == "build":

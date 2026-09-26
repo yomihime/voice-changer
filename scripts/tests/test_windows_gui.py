@@ -1,99 +1,70 @@
-"""Focused server GUI behavior tests using PowerShell fixtures, without WinForms or audio."""
-
-from __future__ import annotations
-
-import json
+"""Exercise the Qt entry and the retained PowerShell wrapper without inference."""
 from pathlib import Path
+import importlib.util
+import os
+import struct
 import subprocess
+import sys
+import tempfile
 import unittest
 
-
 ROOT = Path(__file__).resolve().parents[2]
-GUI = ROOT / "scripts" / "server-gui.ps1"
+GUI = ROOT / "scripts/server_gui.py"
 POWERSHELL = Path("C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe")
 HIDDEN = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+HAS_QT = importlib.util.find_spec("qfluentwidgets") is not None
 
 
-def powershell(command: str) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
-        [str(POWERSHELL), "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", command],
-        cwd=ROOT,
-        capture_output=True,
-        text=True,
-        timeout=15,
-        creationflags=HIDDEN,
-    )
+@unittest.skipUnless(os.name == "nt", "Windows bootstrap")
+class ServerGuiBootstrapTest(unittest.TestCase):
+    def test_missing_uv_bootstraps_even_with_an_existing_interpreter(self):
+        for has_interpreter in (False, True):
+            with self.subTest(has_interpreter=has_interpreter), tempfile.TemporaryDirectory(prefix="gui bootstrap ") as folder:
+                root = Path(folder)
+                scripts = root / "scripts"
+                scripts.mkdir()
+                wrapper = scripts / "server-gui.ps1"
+                wrapper.write_bytes((ROOT / "scripts/server-gui.ps1").read_bytes())
+                # Stop at the bootstrap boundary; no downloads or installations in this test.
+                (scripts / "windows.ps1").write_text(
+                    "Set-Content -LiteralPath (Join-Path $PSScriptRoot 'bootstrap-reached.txt') -Value $args[1]\n"
+                    "throw 'BOOTSTRAP_FIXTURE_STOP'\n", encoding="utf-8")
+                if has_interpreter:
+                    python = root / ".venv/Scripts/python.exe"
+                    python.parent.mkdir(parents=True)
+                    python.touch()
+                result = subprocess.run([str(POWERSHELL), "-NoProfile", "-ExecutionPolicy", "Bypass",
+                                         "-File", str(wrapper), "-SelfTest"], cwd=root, capture_output=True,
+                                        text=True, timeout=15, creationflags=HIDDEN)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("BOOTSTRAP_FIXTURE_STOP", result.stdout + result.stderr)
+                self.assertEqual((scripts / "bootstrap-reached.txt").read_text().strip(), "gui-install")
 
 
-def quote(path: Path) -> str:
-    return "'" + str(path).replace("'", "''") + "'"
+@unittest.skipUnless(HAS_QT, "Install server/requirements/windows-gui.lock to test the GUI")
+class ServerGuiEntryTest(unittest.TestCase):
+    def test_preview_is_offline_and_does_not_create_settings(self):
+        with tempfile.TemporaryDirectory(prefix="server gui ") as folder:
+            root = Path(folder)
+            preview = root / "preview.png"
+            result = subprocess.run([sys.executable, str(GUI), "--root", str(root), "--preview", str(preview)],
+                                    cwd=ROOT, capture_output=True, text=True, timeout=30, creationflags=HIDDEN)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertIn("Voice Changer Server UI self-test passed", result.stdout)
+            content = preview.read_bytes()
+            self.assertEqual(content[:8], b"\x89PNG\r\n\x1a\n")
+            width, height = struct.unpack(">II", content[16:24])
+            self.assertGreaterEqual(width, 900)
+            self.assertGreaterEqual(height, 720)
+            self.assertFalse((root / ".runtime").exists())
 
-
-class WindowsGuiBehaviorTest(unittest.TestCase):
-    def test_review_probe_blocks_foreign_open_and_keeps_window_on_stop_failure(self):
-        command = f"""
-$ErrorActionPreference='Stop'
-$tokens=$null; $errors=$null
-$ast=[System.Management.Automation.Language.Parser]::ParseFile({quote(GUI)},[ref]$tokens,[ref]$errors)
-foreach($name in @('Open-Client','Stop-Server','Exit-Gui')) {{
-  $fn=$ast.Find({{param($n) $n -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -eq $name}},$true)
-  Invoke-Expression $fn.Extent.Text
-}}
-Add-Type @"
-namespace System.Windows.Forms {{ public enum DialogResult {{ Yes, No, OK }} public enum MessageBoxButtons {{ YesNo, OK }} public enum MessageBoxIcon {{ Question, Error }} public static class MessageBox {{ public static int Calls=0; public static DialogResult Show(string m,string t,MessageBoxButtons b,MessageBoxIcon i) {{ Calls++; return DialogResult.Yes; }} }} }}
-"@
-$script:repoRoot={quote(ROOT)}; $script:portControl=[pscustomobject]@{{Value=18888}}; $script:opened=0; $script:probed=0
-function Get-ClientUrl {{ 'http://127.0.0.1:18888/' }}
-function Get-VCClientEndpointState {{ $script:probed++; [pscustomobject]@{{Kind='ForeignHttp';IsVCClient=$false}} }}
-function Start-VCClientDesktop {{ $script:opened++ }}
-Open-Client
-$script:serverProcess=[pscustomobject]@{{HasExited=$false}}; $script:serverOwner=[pscustomobject]@{{OwnsProcess=$true}}
-$script:allowExit=$false; $script:closed=$false; $script:disposed=$false
-$script:notifyIcon=[pscustomobject]@{{Visible=$true}}; $script:notifyIcon | Add-Member ScriptMethod Dispose {{$script:disposed=$true}}
-$script:form=[pscustomobject]@{{}}; $script:form | Add-Member ScriptMethod Close {{$script:closed=$true}}
-function Save-GuiSettings {{}}; function Update-Controls {{}}
-function Stop-VCClientOwnedProcess {{ [pscustomobject]@{{Success=$false;Error='fixture access denied'}} }}
-Exit-Gui
-[pscustomobject]@{{desktopCalls=$script:opened;identityProbes=$script:probed;closed=$script:closed;disposed=$script:disposed;allowExit=$script:allowExit;ownerStillLive=$script:serverOwner.OwnsProcess}} | ConvertTo-Json -Compress
-"""
-        result = powershell(command)
+    @unittest.skipUnless(os.name == "nt", "Windows bootstrap")
+    def test_compatibility_wrapper_runs_qt_self_test(self):
+        result = subprocess.run([str(POWERSHELL), "-NoProfile", "-ExecutionPolicy", "Bypass",
+                                 "-File", str(ROOT / "scripts/server-gui.ps1"), "-SelfTest"],
+                                cwd=ROOT, capture_output=True, text=True, timeout=30, creationflags=HIDDEN)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        outcome = json.loads(result.stdout.strip().splitlines()[-1])
-        self.assertEqual(outcome["desktopCalls"], 0)
-        self.assertEqual(outcome["identityProbes"], 1)
-        self.assertFalse(outcome["closed"])
-        self.assertFalse(outcome["disposed"])
-        self.assertFalse(outcome["allowExit"])
-        self.assertTrue(outcome["ownerStillLive"])
-
-    def test_timer_opens_when_first_sync_is_already_ready_and_only_once(self):
-        command = f"""
-$ErrorActionPreference='Stop'
-$tokens=$null; $errors=$null
-$ast=[System.Management.Automation.Language.Parser]::ParseFile({quote(GUI)},[ref]$tokens,[ref]$errors)
-$timerCall=$ast.Find({{param($n) $n -is [System.Management.Automation.Language.InvokeMemberExpressionAst] -and $n.Member.Value -eq 'Add_Tick'}},$true)
-Add-Type @"
-namespace System.Windows.Forms {{ public enum MessageBoxButtons {{ OK }} public enum MessageBoxIcon {{ Error }} public static class MessageBox {{ public static DialogResult Show(string m,string t,MessageBoxButtons b,MessageBoxIcon i) {{ return DialogResult.OK; }} }} public enum DialogResult {{ OK }} }}
-"@
-$script:statusValue=[pscustomobject]@{{Text='Starting'}}
-$script:lastEndpointState=[pscustomobject]@{{IsHttpReady=$true}}
-$script:startupOpenPending=$true
-$script:opened=0
-function Get-VCClientEndpointState {{ [pscustomobject]@{{Kind='VCClientNoModel';IsVCClient=$true;IsHttpReady=$true;ModelReady=$false}} }}
-function Get-ClientUrl {{ 'http://127.0.0.1:18888/' }}
-function Start-VCClientDesktop {{ $script:opened++ }}
-function Open-Client {{ $script:opened++ }}
-function Update-Controls {{ $script:statusValue.Text='Ready (no model)'; $script:lastEndpointState=[pscustomobject]@{{IsHttpReady=$true}} }}
-& $timerCall.Arguments[0].ScriptBlock.GetScriptBlock()
-& $timerCall.Arguments[0].ScriptBlock.GetScriptBlock()
-[pscustomobject]@{{desktopCalls=$script:opened;pending=$script:startupOpenPending;state=$script:statusValue.Text}} | ConvertTo-Json -Compress
-"""
-        result = powershell(command)
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        outcome = json.loads(result.stdout.strip().splitlines()[-1])
-        self.assertEqual(outcome["desktopCalls"], 1)
-        self.assertFalse(outcome["pending"])
-        self.assertEqual(outcome["state"], "Ready (no model)")
+        self.assertIn("Voice Changer Server UI self-test passed", result.stdout)
 
 
 if __name__ == "__main__":

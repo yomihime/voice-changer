@@ -1,0 +1,5 @@
+# Voice Changer Server control panel (community edition, no Pro components).
+# Keep separate from CUDA inference dependencies for a lightweight GUI bootstrap.
+PyQt6==6.11.0
+PyQt6-Fluent-Widgets==1.11.3
+psutil==7.2.2

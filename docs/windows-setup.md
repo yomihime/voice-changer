@@ -50,38 +50,27 @@ python scripts/desktop.py verify
 
 ポータブル ZIP には検証済み Electron 実行環境（`Electron 44.2.0`）を含めます。`node.exe`、Rust、MSVC、WebView2 は配布先で不要です。Desktop Client の設定は `%LOCALAPPDATA%/Yomihime/VoiceChanger/Desktop/` に保存され、原作者版の設定とは分離されます。マイクは Client 内の確認ダイアログで許可した場合だけ使用します。
 
-## Windows Server GUI
+## Voice Changer Server GUI
 
-`server-gui-windows.bat` をダブルクリックすると、CLI とは独立した Windows
-専用の Server コントロールを開きます。新しい Python パッケージは不要で、
-Windows PowerShell と WinForms を使用します。
+`server-gui-windows.bat` から **Voice Changer Server** を開きます。
+UI は PyQt6 / qfluentwidgets のコミュニティ版を使用し、設定、プロセス管理、
+トレイ、ログ表示を提供します。Electron Client とは別のサービス管理アプリです。
 
-- Server の Start / Stop と Running / Starting / Ready (no model) / exit code 表示
-- port 番号と Local only / LAN bind の選択
-- weight download の skip と、準備完了時の Client 自動表示
-- Client を開く、URL をコピー、Server stdout/stderr の末尾表示、log folder を開く
-- 設定の保存（`.runtime/server-gui/settings.json`）
-- 最小化または閉じる操作で task tray に格納
-- tray menu から Show / Open Client / Start / Stop / Exit
-- 使用中 port の起動防止と、GUI 自身が起動した Server process tree のみの停止
-
-GUI が起動する Server は `scripts/windows.ps1 -Action start` と同じ経路です。
-`start-windows.bat`、`scripts/windows.ps1`、`scripts/manage.py start` は変更せず、
-自動化や詳細な引数には引き続き CLI を使用できます。GUI の依存確認だけを行う
-場合は次を実行します。
+依存関係は `server/requirements/windows-gui.lock` で固定しています。
+ソース版の初回 GUI 起動時に必要な GUI ライブラリだけを導入します。
+ポータブル版には Qt ランタイム、plugins と依存ライセンスを含みます。
+GPLv3 / 商用ライセンスの条件と構成の詳細は [Server GUI](server-gui.md) を参照してください。
 
 ```powershell
-powershell.exe -NoProfile -STA -ExecutionPolicy Bypass `
-  -File scripts\server-gui.ps1 -SelfTest
+.venv\Scripts\python.exe scripts/server_gui.py --self-test
+.venv\Scripts\python.exe scripts/server_gui.py --preview .runtime/server-gui-fluent-preview.png
 ```
 
-GUI と同じ非表示 child-process 経路で Server の起動、ready、process-tree 停止を
-自動確認する場合は、未使用 port を指定します。
-
-```powershell
-powershell.exe -NoProfile -STA -ExecutionPolicy Bypass `
-  -File scripts\server-gui.ps1 -AutomationTest -AutomationPort 18893
-```
+この確認は UI のみを実行し、推論サービス、モデル、音声入力は起動しません。
+旧 `scripts/server-gui.ps1 -SelfTest` 入口も Python の確認へ転送します。
+設定は引き続き `.runtime/server-gui/settings.json` を使用します。
+GUI が開始するサービスは従来の `scripts/windows.ps1 -Action start` と同じ経路です。
+CLI の起動方法は維持されます。
 
 通常の初回起動では、既存のサーバ処理に従って共通の推論用ウェイトをダウンロードします。依存ライブラリのインストールとは別の処理です。CLI はこの処理と Server 起動を同じ待機状態として表示し、GUI は Starting として表示します。既存の外部 VCClient を検出した場合、GUI はそれを Ready と表示しますが、Stop では終了しません。
 

@@ -39,6 +39,22 @@ class DistributionBoundaryTest(unittest.TestCase):
     def test_server_gui_is_packaged(self):
         self.assertIn("server-gui-windows.bat", manage.PACKAGE_SUPPORT_FILES)
         self.assertIn("scripts/server-gui.ps1", manage.PACKAGE_SUPPORT_FILES)
+        for name in ("scripts/server_gui.py", "scripts/server_gui/app.py", "scripts/server_gui/view.py",
+                     "scripts/server_gui/runtime.py", "scripts/server_gui/__init__.py",
+                     "server/requirements/windows-gui.lock", "docs/server-gui.md"):
+            self.assertIn(name, manage.PACKAGE_SUPPORT_FILES)
+
+    def test_gui_dependency_check_rejects_missing_or_different_versions(self):
+        with tempfile.TemporaryDirectory() as directory:
+            lock = Path(directory) / "gui.lock"
+            lock.write_text("example-gui==1.2.3 \\\n    --hash=sha256:fixture\n", encoding="utf-8")
+            with patch.object(manage, "GUI_LOCK", lock):
+                with patch.object(manage.metadata, "version", return_value="1.2.3"):
+                    self.assertTrue(manage.gui_dependencies_ready())
+                with patch.object(manage.metadata, "version", return_value="1.2.4"):
+                    self.assertFalse(manage.gui_dependencies_ready())
+                with patch.object(manage.metadata, "version", side_effect=manage.metadata.PackageNotFoundError):
+                    self.assertFalse(manage.gui_dependencies_ready())
 
     def test_desktop_builder_is_packaged(self):
         self.assertIn("scripts/desktop.py", manage.PACKAGE_SUPPORT_FILES)

@@ -27,7 +27,7 @@ function Get-VerifiedArchive($Url, $Sha256, $Archive, $Destination) {
 }
 
 try {
-    if ($Action -notin @('install', 'start', 'build', 'check')) { throw "Unknown action: $Action" }
+    if ($Action -notin @('install', 'gui-install', 'start', 'build', 'check')) { throw "Unknown action: $Action" }
     if (![Environment]::Is64BitOperatingSystem -or $env:PROCESSOR_ARCHITECTURE -eq 'ARM64') {
         throw 'This installation profile requires Windows x64 and an NVIDIA GPU.'
     }
