@@ -58,9 +58,11 @@ type GuiStateAndMethod = {
     isConverting: boolean;
     isAnalyzing: boolean;
     showPyTorchModelUpload: boolean;
+    showDeviceSettings: boolean;
     setIsConverting: (val: boolean) => void;
     setIsAnalyzing: (val: boolean) => void;
     setShowPyTorchModelUpload: (val: boolean) => void;
+    setShowDeviceSettings: (val: boolean) => void;
 
     reloadDeviceInfo: () => Promise<void>;
     inputAudioDeviceInfo: MediaDeviceInfo[];
@@ -82,6 +84,8 @@ type GuiStateAndMethod = {
 
     modelSlotNum: number;
     setModelSlotNum: (val: number) => void;
+    modelSlotDialogRequest: { screen: "Main" | "FileUploader" | "Editor"; targetIndex: number } | null;
+    setModelSlotDialogRequest: (request: { screen: "Main" | "FileUploader" | "Editor"; targetIndex: number } | null) => void;
 
     textInputResolve: TextInputResolveType | null;
     setTextInputResolve: (val: TextInputResolveType | null) => void;
@@ -112,8 +116,10 @@ export const GuiStateProvider = ({ children }: Props) => {
     const [isConverting, setIsConverting] = useState<boolean>(false);
     const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
     const [modelSlotNum, setModelSlotNum] = useState<number>(0);
+    const [modelSlotDialogRequest, setModelSlotDialogRequest] = useState<GuiStateAndMethod["modelSlotDialogRequest"]>(null);
 
     const [showPyTorchModelUpload, setShowPyTorchModelUpload] = useState<boolean>(false);
+    const [showDeviceSettings, setShowDeviceSettings] = useState<boolean>(false);
 
     const [inputAudioDeviceInfo, setInputAudioDeviceInfo] = useState<MediaDeviceInfo[]>([]);
     const [outputAudioDeviceInfo, setOutputAudioDeviceInfo] = useState<MediaDeviceInfo[]>([]);
@@ -356,6 +362,8 @@ export const GuiStateProvider = ({ children }: Props) => {
         },
         isConverting,
         setIsConverting,
+        showDeviceSettings,
+        setShowDeviceSettings,
         isAnalyzing,
         setIsAnalyzing,
         showPyTorchModelUpload,
@@ -381,6 +389,8 @@ export const GuiStateProvider = ({ children }: Props) => {
 
         modelSlotNum,
         setModelSlotNum,
+        modelSlotDialogRequest,
+        setModelSlotDialogRequest,
 
         textInputResolve,
         setTextInputResolve,

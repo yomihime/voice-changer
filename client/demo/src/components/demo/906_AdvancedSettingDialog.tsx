@@ -254,7 +254,7 @@ export const AdvancedSettingDialog = () => {
 
         return (
             <div className="dialog-frame">
-                <div className="dialog-title">Advanced Setting</div>
+                <div className="dialog-title">高级设置</div>
                 <div className="dialog-content">
                     {content}
                     {closeButtonRow}

@@ -28,16 +28,16 @@ export const MoreActionArea = (_props: MoreActionAreaProps) => {
                     <div className="config-sub-area-control-field config-sub-area-control-field-long">
                         <div className="config-sub-area-buttons">
                             <div onClick={onOpenMergeLabClicked} className="config-sub-area-button">
-                                Merge Lab
+                                模型合并
                             </div>
                             <div onClick={onOpenAdvancedSettingClicked} className="config-sub-area-button">
-                                Advanced Setting
+                                高级设置
                             </div>
                             <div onClick={onOpenGetServerInformationClicked} className="config-sub-area-button">
-                                Server Info
+                                服务器信息
                             </div>
                             <div onClick={onOpenGetClientInformationClicked} className="config-sub-area-button">
-                                Client Info
+                                客户端信息
                             </div>
                         </div>
                     </div>

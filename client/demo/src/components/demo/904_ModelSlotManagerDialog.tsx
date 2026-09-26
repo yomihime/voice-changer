@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useGuiState } from "./001_GuiStateProvider";
 import { MainScreen } from "./904-1_MainScreen";
 import { SampleDownloaderScreen } from "./904-2_SampleDownloader";
@@ -30,9 +30,17 @@ export const ModelSlotManagerDialog = () => {
     const [screen, setScreen] = useState<ModelSlotManagerDialogScreen>("Main");
     const [targetIndex, setTargetIndex] = useState<number>(0);
 
+    useEffect(() => {
+        if (!guiState.modelSlotDialogRequest) return;
+        setTargetIndex(guiState.modelSlotDialogRequest.targetIndex);
+        setScreen(guiState.modelSlotDialogRequest.screen);
+    }, [guiState.modelSlotDialogRequest]);
+
     const dialog = useMemo(() => {
         const close = () => {
             guiState.stateControls.showModelSlotManagerCheckbox.updateState(false);
+            guiState.setModelSlotDialogRequest(null);
+            setScreen("Main");
         };
         const openSampleDownloader = (index: number) => {
             setTargetIndex(index);

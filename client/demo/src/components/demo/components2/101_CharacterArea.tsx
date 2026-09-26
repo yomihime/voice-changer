@@ -52,22 +52,6 @@ export const CharacterArea = (_props: CharacterAreaProps) => {
         start();
     }, [startWithAudioContextCreate]);
 
-    const nameArea = useMemo(() => {
-        if (!selected) {
-            return <></>;
-        }
-        return (
-            <div className="character-area-control">
-                <div className="character-area-control-title">Name:</div>
-                <div className="character-area-control-field">
-                    <div className="character-area-text">
-                        {selected.name} {selected.slotIndex == "Beatrice-JVS" ? `speaker:${beatriceJVSSpeakerId}` : ""}
-                    </div>
-                </div>
-            </div>
-        );
-    }, [selected, beatriceJVSSpeakerId]);
-
     const startControl = useMemo(() => {
         const onStartClicked = async () => {
             if (serverSetting.serverSetting.enableServerAudio == 0) {
@@ -146,12 +130,12 @@ export const CharacterArea = (_props: CharacterAreaProps) => {
                 return (
                     <div className="character-area-control">
                         <div className="character-area-control-buttons">
-                            <div onClick={onStartClicked} className={startClassName}>
-                                start
-                            </div>
-                            <div onClick={onStopClicked} className={stopClassName}>
-                                stop
-                            </div>
+                            <button type="button" onClick={onStartClicked} className={startClassName} aria-pressed={guiState.isConverting}>
+                                <span className="vc-control-icon">▶</span>开始
+                            </button>
+                            <button type="button" onClick={onStopClicked} className={stopClassName} aria-pressed={!guiState.isConverting}>
+                                <span className="vc-control-icon">■</span>停止
+                            </button>
                         </div>
                     </div>
                 );
@@ -159,16 +143,19 @@ export const CharacterArea = (_props: CharacterAreaProps) => {
                 return (
                     <div className="character-area-control">
                         <div className="character-area-control-buttons">
-                            <div onClick={onStartClicked} className={startClassName}>
-                                start
-                            </div>
-                            <div onClick={onStopClicked} className={stopClassName}>
-                                stop
-                            </div>
+                            <button type="button" onClick={onStartClicked} className={startClassName} aria-pressed={guiState.isConverting}>
+                                <span className="vc-control-icon">▶</span>开始
+                            </button>
+                            <button type="button" onClick={onStopClicked} className={stopClassName} aria-pressed={!guiState.isConverting}>
+                                <span className="vc-control-icon">■</span>停止
+                            </button>
 
-                            <div onClick={onPassThroughClicked} className={passThruClassName}>
-                                passthru
-                            </div>
+                            <button type="button" onClick={onPassThroughClicked} className={passThruClassName} aria-pressed={serverSetting.serverSetting.passThrough}>
+                                <span className="vc-control-icon">⇄</span>直通
+                            </button>
+                            <button type="button" className="vc-control-nav" onClick={() => guiState.setShowDeviceSettings(true)}>
+                                <span className="vc-control-icon">⚙</span>设置
+                            </button>
                         </div>
                     </div>
                 );
@@ -294,24 +281,38 @@ export const CharacterArea = (_props: CharacterAreaProps) => {
     const characterArea = useMemo(() => {
         return (
             <div className="character-area">
-                <Portrait></Portrait>
-                <div className="character-area-control-area">
-                    {nameArea}
-                    {startControl}
-                    {gainControl}
-                    <TuningArea />
-                    <IndexArea />
-                    <SpeakerArea />
-                    <F0FactorArea />
-                    <SoVitsSVC40SettingArea />
-                    <DDSPSVC30SettingArea />
-                    <DiffusionSVCSettingArea />
-                    <WebEditionSettingArea />
-                    {modelSlotControl}
+                <div className="vc-character-heading">
+                    <h2>{selected ? `${selected.slotIndex}. ${selected.name}` : "请选择模型"}</h2>
+                    {selected && <span className="vc-model-type">{selected.voiceChangerType}</span>}
+                    {selected?.slotIndex == "Beatrice-JVS" && <span className="vc-model-type">speaker {beatriceJVSSpeakerId}</span>}
+                    <span className="vc-device-mode">{serverSetting.serverSetting.enableServerAudio == 1 ? "服务器模式" : "客户端模式"}</span>
+                </div>
+                <div className="vc-character-layout">
+                    <div className="vc-character-media">
+                        <Portrait />
+                    </div>
+                    <div className="character-area-control-area">
+                        <h3>控制</h3>
+                        {startControl}
+                        <h3>音量控制</h3>
+                        {gainControl}
+                        <h3>语音控制</h3>
+                        <div className="vc-voice-fields">
+                            <TuningArea />
+                            <IndexArea />
+                            <SpeakerArea />
+                            <F0FactorArea />
+                            <SoVitsSVC40SettingArea />
+                            <DDSPSVC30SettingArea />
+                            <DiffusionSVCSettingArea />
+                            <WebEditionSettingArea />
+                        </div>
+                        {modelSlotControl}
+                    </div>
                 </div>
             </div>
         );
-    }, [startControl, gainControl, modelSlotControl]);
+    }, [selected, startControl, gainControl, modelSlotControl, serverSetting.serverSetting.enableServerAudio, beatriceJVSSpeakerId]);
 
     return characterArea;
 };

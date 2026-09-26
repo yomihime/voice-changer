@@ -1,0 +1,643 @@
+/* The 2.1.4 layout, backed by the existing client and server controls. */
+.vc-v214 {
+    --vc-blue: #1976d2;
+    --vc-line: #dedfe3;
+    --vc-muted: #6b7078;
+    --vc-card-shadow: 0 4px 18px rgba(21, 42, 77, 0.08);
+    gap: 24px;
+    padding: 32px clamp(20px, 2.5vw, 48px) 60px;
+    color: #202124;
+    background:
+        linear-gradient(225deg, #4077bb 0 5%, #1d2f4e 5% 7%, transparent 7%) top right / 100% 520px no-repeat,
+        linear-gradient(45deg, #1d2f4e 0 4%, transparent 4%) bottom left / 100% 400px no-repeat,
+        #fff;
+    font-family: Arial, "Microsoft YaHei", sans-serif;
+}
+.vc-v214 *,
+.vc-v214 *::before,
+.vc-v214 *::after {
+    font-family: inherit;
+}
+.vc-v214 .partition-content {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    overflow: visible;
+}
+.vc-v214 .vc-section {
+    min-width: 0;
+}
+.vc-v214 .headerArea {
+    gap: 18px;
+    margin: 4px 0 8px;
+}
+.vc-v214 .headerArea .title1 {
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.vc-v214 .headerArea .title1 .title {
+    color: #16191d;
+    font-size: clamp(1.7rem, 2.1vw, 2.4rem);
+    font-weight: 750;
+    text-shadow: none;
+}
+.vc-v214 .headerArea .title1 .title-version-number,
+.vc-v214 .headerArea .title1 .title-version {
+    color: var(--vc-muted);
+    font-size: 1rem;
+}
+.vc-v214 .headerArea .icons {
+    gap: 12px;
+}
+.vc-v214 .headerArea .icons .belongings {
+    gap: 10px;
+    align-items: center;
+}
+.vc-v214 .headerArea .icons .belongings .link,
+.vc-v214 .headerArea .icons .belongings-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 42px;
+    min-width: 42px;
+    padding: 8px 12px;
+    border: 1px solid var(--vc-line);
+    border-radius: 10px;
+    background: #fff;
+    color: #555;
+    box-shadow: none;
+}
+.vc-v214 .headerArea .icons .belongings .link img {
+    max-height: 22px;
+}
+.vc-v214 .headerArea .icons .belongings .link:hover,
+.vc-v214 .headerArea .icons .belongings-button:hover {
+    border-color: var(--vc-blue);
+    color: var(--vc-blue);
+}
+
+.vc-v214 .model-slot-area,
+.vc-v214 .character-area,
+.vc-v214 .config-area {
+    display: flex;
+    width: 100%;
+    border: 1px solid #e4e5e8;
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: var(--vc-card-shadow);
+}
+.vc-v214 .model-slot-area {
+    flex-direction: column;
+    padding: 0;
+    overflow: hidden;
+}
+.vc-v214 .vc-model-list-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    min-height: 68px;
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--vc-line);
+}
+.vc-v214 h2 {
+    font-size: 1.45rem;
+    line-height: 1.3;
+}
+.vc-v214 .vc-model-list-header span {
+    color: var(--vc-muted);
+    font-weight: 650;
+    white-space: nowrap;
+}
+.vc-v214 .model-slot-area .model-slot-panel {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 190px;
+    gap: 0;
+}
+.vc-v214 .model-slot-area .model-slot-tiles-container {
+    display: flex;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    gap: 14px;
+    min-height: 205px;
+    max-height: none;
+    padding: 22px 24px 10px;
+    overflow: visible;
+}
+.vc-v214 .model-slot-area .model-slot-tile-container,
+.vc-v214 .model-slot-area .model-slot-tile-container-selected {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    width: 145px;
+    height: 174px;
+    padding: 0;
+    border: 2px solid var(--vc-line);
+    border-radius: 11px;
+    background: #fff;
+    color: #24262a;
+    overflow: hidden;
+    cursor: pointer;
+    transition:
+        border-color 0.15s,
+        box-shadow 0.15s;
+}
+.vc-v214 .model-slot-area .model-slot-tile-container:hover,
+.vc-v214 .model-slot-area .model-slot-tile-container-selected {
+    border-color: var(--vc-blue);
+    box-shadow: 0 0 0 1px rgba(25, 118, 210, 0.08);
+}
+.vc-v214 .model-slot-tile-icon-div {
+    position: relative;
+    width: 100%;
+    height: 132px;
+    padding: 0;
+    overflow: hidden;
+}
+.vc-v214 .model-slot-tile-icon {
+    width: 100%;
+    height: 100%;
+    border-radius: 0;
+    object-fit: cover;
+}
+.vc-v214 .model-slot-tile-icon-no-entry {
+    position: static;
+    padding-top: 45px;
+    text-align: center;
+}
+.vc-v214 .model-slot-tile-vctype {
+    top: 5px;
+    left: 5px;
+    padding: 1px 5px;
+    border-radius: 5px;
+    color: #fff;
+    background: rgba(17, 49, 92, 0.78);
+}
+.vc-v214 .model-slot-tile-dscription {
+    width: 100%;
+    padding: 9px 5px;
+    color: #25272b;
+    font-size: 0.88rem;
+    font-weight: 700;
+    line-height: 1.2;
+    text-align: center;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
+.vc-v214 .model-slot-area .model-slot-buttons {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    width: auto;
+    gap: 10px;
+    padding: 22px 18px;
+    border-left: 1px solid var(--vc-line);
+}
+.vc-v214 .model-slot-area .model-slot-buttons .model-slot-button {
+    width: 100%;
+    min-height: 54px;
+    padding: 10px;
+    border: 2px solid var(--vc-line);
+    border-radius: 12px;
+    background: #fff;
+    color: #61656b;
+    font-size: 1rem;
+    font-weight: 650;
+    cursor: pointer;
+}
+.vc-v214 .model-slot-area .model-slot-buttons .model-slot-button:hover {
+    border-color: var(--vc-blue);
+    color: var(--vc-blue);
+}
+.vc-v214 .model-slot-area .model-slot-sort-buttons {
+    order: 3;
+    display: flex;
+    gap: 8px;
+    height: auto;
+}
+.vc-v214 .model-slot-area .model-slot-sort-buttons .model-slot-sort-button,
+.vc-v214 .model-slot-area .model-slot-sort-buttons .model-slot-sort-button-active {
+    width: 34px;
+    height: 30px;
+    padding: 5px;
+    border: 1px solid var(--vc-line);
+    border-radius: 7px;
+    background: #fff;
+    color: #6b7078;
+}
+.vc-v214 .model-slot-area .model-slot-sort-buttons .model-slot-sort-button-active {
+    color: var(--vc-blue);
+    border-color: var(--vc-blue);
+}
+.vc-v214 .vc-model-pages {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 4px 0 16px;
+    color: #383c42;
+}
+.vc-v214 .vc-model-pages button {
+    width: 32px;
+    height: 32px;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: #454a51;
+    font-size: 1.5rem;
+    cursor: pointer;
+}
+.vc-v214 .vc-model-pages button:hover:not(:disabled) {
+    background: #eaf3fc;
+    color: var(--vc-blue);
+}
+.vc-v214 .vc-model-pages button:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+
+.vc-v214 .character-area {
+    flex-direction: column;
+    gap: 0;
+    padding: 28px;
+}
+.vc-v214 .vc-character-heading {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 22px;
+}
+.vc-v214 .vc-character-heading h2 {
+    margin-right: 3px;
+}
+.vc-v214 .vc-model-type,
+.vc-v214 .vc-device-mode {
+    border-radius: 20px;
+    padding: 5px 10px;
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+.vc-v214 .vc-model-type {
+    border: 1px solid #333;
+    color: #252525;
+}
+.vc-v214 .vc-device-mode {
+    margin-left: auto;
+    background: var(--vc-blue);
+    color: #fff;
+}
+.vc-v214 .vc-character-layout {
+    display: grid;
+    grid-template-columns: minmax(240px, 31%) minmax(0, 1fr);
+    gap: 32px;
+}
+.vc-v214 .vc-character-media {
+    min-width: 0;
+}
+.vc-v214 .character-area .portrait-area,
+.vc-v214 .character-area .portrait-container {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1;
+}
+.vc-v214 .character-area .portrait-container {
+    overflow: hidden;
+    border: 1px solid var(--vc-line);
+    border-radius: 12px;
+    background: #f9fbfd;
+}
+.vc-v214 .character-area .portrait {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 0;
+}
+.vc-v214 .character-area-control-area {
+    min-width: 0;
+    gap: 13px;
+}
+.vc-v214 .character-area-control-area h3 {
+    margin: 5px 0 2px;
+    font-size: 1.2rem;
+}
+.vc-v214 .character-area-control-area .character-area-control {
+    min-width: 0;
+    gap: 12px;
+}
+.vc-v214 .character-area-control-area .character-area-control-title {
+    width: 100px;
+    flex: 0 0 100px;
+}
+.vc-v214 .character-area-control-area .character-area-control-field {
+    flex: 1;
+    min-width: 0;
+}
+.vc-v214 .character-area-control-buttons {
+    flex-wrap: wrap;
+    gap: 10px;
+}
+.vc-v214 .character-area-control-buttons > button {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 90px;
+    min-height: 74px;
+    padding: 8px;
+    border: 2px solid var(--vc-line);
+    border-radius: 11px;
+    background: #fff;
+    color: #6a6d72;
+    font-size: 0.88rem;
+    font-weight: 650;
+    cursor: pointer;
+}
+.vc-v214 .character-area-control-buttons > button[aria-pressed="true"] {
+    border-color: var(--vc-blue);
+    color: var(--vc-blue);
+    background: #f7fbff;
+}
+.vc-v214 .character-area-control-buttons > button:hover {
+    border-color: var(--vc-blue);
+    color: var(--vc-blue);
+}
+.vc-v214 .vc-control-icon {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 1.35rem;
+    line-height: 1;
+}
+.vc-v214 .character-area-control-area > .character-area-control:nth-of-type(2),
+.vc-v214 .vc-voice-fields {
+    padding: 18px;
+    border: 1px solid var(--vc-line);
+    border-radius: 12px;
+}
+.vc-v214 .character-area-slider-control {
+    align-items: center;
+    width: 100%;
+    min-height: 37px;
+    gap: 10px;
+}
+.vc-v214 .character-area-slider-control .character-area-slider-control-kind {
+    width: 38px;
+    color: #59616b;
+}
+.vc-v214 .character-area-slider-control .character-area-slider-control-slider {
+    width: auto;
+    flex: 1;
+}
+.vc-v214 input[type="range"] {
+    width: 100%;
+    accent-color: var(--vc-blue);
+}
+.vc-v214 .vc-voice-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.vc-v214 .vc-voice-fields .character-area-control {
+    width: 100%;
+}
+.vc-v214 .vc-voice-fields .character-area-control-field input,
+.vc-v214 .vc-voice-fields .character-area-control-field select {
+    max-width: 100%;
+}
+
+.vc-v214 .config-area {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 28px;
+    padding: 25px;
+}
+.vc-v214 .config-area .config-sub-area {
+    flex: 1 1 320px;
+    min-width: 0;
+    gap: 10px;
+}
+.vc-v214 .config-area .config-sub-area-control {
+    gap: 12px;
+    align-items: center;
+}
+.vc-v214 .config-area .config-sub-area-control-title {
+    flex: 0 0 110px;
+    width: 110px;
+    color: #333;
+}
+.vc-v214 .config-area .config-sub-area-control-field {
+    flex: 1;
+    min-width: 0;
+    width: auto;
+}
+.vc-v214 .config-area select,
+.vc-v214 .dialog-container select,
+.vc-v214 .dialog-container input:not([type="range"]):not([type="checkbox"]):not([type="radio"]) {
+    min-height: 38px;
+    border: 1px solid #b9bec5;
+    border-radius: 6px;
+    background: #fff;
+    color: #24272b;
+}
+.vc-v214 .config-area .config-sub-area-buttons {
+    flex-wrap: wrap;
+    gap: 6px;
+}
+.vc-v214 .config-area .config-sub-area-button,
+.vc-v214 .config-area .config-sub-area-button-active,
+.vc-v214 .character-area .character-area-button {
+    display: inline-flex;
+    align-items: center;
+    min-height: 32px;
+    padding: 5px 10px;
+    border: 1px solid var(--vc-line);
+    border-radius: 7px;
+    background: #fff;
+    color: #4a525c;
+    cursor: pointer;
+}
+.vc-v214 .config-area .config-sub-area-button-active {
+    color: var(--vc-blue);
+    border-color: var(--vc-blue);
+}
+.vc-v214 .vc-device-settings {
+    scroll-margin-top: 24px;
+}
+.vc-v214 .vc-settings-overlay {
+    position: fixed;
+    z-index: 300;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(0, 0, 0, 0.52);
+}
+.vc-v214 .vc-settings-overlay[hidden] {
+    display: none;
+}
+.vc-v214 .vc-settings-modal {
+    width: min(920px, 100%);
+    max-height: min(88vh, 1040px);
+    overflow-y: auto;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.28);
+}
+.vc-v214 .vc-settings-title-row {
+    position: sticky;
+    z-index: 1;
+    top: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 22px 28px;
+    background: #fff;
+}
+.vc-v214 .vc-settings-title-row h2 {
+    margin: 0;
+    font-size: 1.7rem;
+}
+.vc-v214 .vc-settings-title-row button {
+    width: 38px;
+    height: 38px;
+    border: 0;
+    background: transparent;
+    color: #333;
+    font-size: 1.8rem;
+    cursor: pointer;
+}
+.vc-v214 .vc-settings-modal .vc-device-settings {
+    display: block;
+    padding: 24px 40px 40px;
+    border: 0;
+    box-shadow: none;
+}
+.vc-v214 .vc-settings-modal .vc-device-settings > h3 {
+    margin: 0 0 22px;
+    font-size: 1.2rem;
+}
+.vc-v214 .vc-settings-modal .config-sub-area {
+    width: 100%;
+}
+.vc-v214 .vc-settings-modal .config-sub-area-control {
+    margin-bottom: 16px;
+}
+.vc-v214 .vc-settings-modal .config-sub-area-control-field select {
+    width: 100%;
+    min-height: 42px;
+}
+
+.vc-v214 .dialog-container,
+.vc-v214 .dialog-container2 {
+    position: fixed;
+}
+.vc-v214 .dialog-container > .dialog-frame,
+.vc-v214 .dialog-container2 > .dialog-frame {
+    width: min(86vw, 1050px);
+    max-height: 86vh;
+    border: 0;
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.25);
+}
+.vc-v214 .dialog-container .dialog-frame .dialog-frame,
+.vc-v214 .dialog-container2 .dialog-frame .dialog-frame {
+    width: 100%;
+    max-height: 85vh;
+    border: 0;
+    box-shadow: none;
+}
+.vc-v214 .dialog-container .dialog-title,
+.vc-v214 .dialog-container2 .dialog-title {
+    width: 100%;
+    margin: 0;
+    padding: 20px 28px 14px;
+    background: #fff;
+    color: #222;
+    font-size: 1.5rem;
+    font-weight: 750;
+    text-align: left;
+}
+.vc-v214 .dialog-container .dialog-fixed-size-content,
+.vc-v214 .dialog-container2 .dialog-fixed-size-content {
+    width: 100%;
+    max-height: 73vh;
+    padding: 8px 28px 24px;
+    overflow-y: auto;
+}
+.vc-v214 .dialog-container .model-slot-container {
+    max-height: 62vh;
+}
+.vc-v214 .dialog-container .model-slot-container .model-slot {
+    min-height: 110px;
+    height: auto;
+    gap: 14px;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--vc-line);
+}
+.vc-v214 .dialog-container .model-slot-container .model-slot .model-slot-icon,
+.vc-v214 .dialog-container .model-slot-container .model-slot .model-slot-icon-pointable {
+    width: 82px;
+    height: 82px;
+    border-radius: 9px;
+    object-fit: cover;
+}
+.vc-v214 .dialog-container .model-slot-container .model-slot .model-slot-detail {
+    flex: 1;
+    width: auto;
+    border: 0;
+    overflow: hidden;
+}
+.vc-v214 .dialog-container .model-slot-container .model-slot .model-slot-buttons {
+    width: 120px;
+    border: 0;
+    gap: 5px;
+}
+.vc-v214 .dialog-container .model-slot-container .model-slot .model-slot-button,
+.vc-v214 .dialog-container .file-uploader-file-select-row-button,
+.vc-v214 .dialog-container .file-uploader-file-select-upload-button {
+    min-height: 30px;
+    padding: 5px 10px;
+    border: 1px solid var(--vc-line);
+    border-radius: 7px;
+    background: #fff;
+    color: #4e5661;
+    cursor: pointer;
+}
+.vc-v214 .dialog-container .model-slot-container .model-slot .model-slot-button:hover,
+.vc-v214 .dialog-container .file-uploader-file-select-row-button:hover {
+    border-color: var(--vc-blue);
+    color: var(--vc-blue);
+}
+
+@media (max-width: 850px) {
+    .vc-v214 {
+        padding: 20px 14px 36px;
+    }
+    .vc-v214 .model-slot-area .model-slot-panel {
+        grid-template-columns: 1fr;
+    }
+    .vc-v214 .model-slot-area .model-slot-buttons {
+        flex-direction: row;
+        border-left: 0;
+        border-top: 1px solid var(--vc-line);
+    }
+    .vc-v214 .model-slot-area .model-slot-buttons .model-slot-button {
+        width: auto;
+        flex: 1;
+    }
+    .vc-v214 .vc-character-layout {
+        grid-template-columns: 1fr;
+    }
+    .vc-v214 .vc-character-media {
+        max-width: 360px;
+    }
+    .vc-v214 .character-area {
+        padding: 18px;
+    }
+    .vc-v214 .dialog-container > .dialog-frame {
+        width: 96vw;
+    }
+}
