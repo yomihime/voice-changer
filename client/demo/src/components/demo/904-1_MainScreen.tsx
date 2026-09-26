@@ -272,7 +272,7 @@ export const MainScreen = (props: MainScreenProps) => {
 
         return (
             <div className="dialog-frame">
-                <div className="dialog-title">模型管理</div>
+                <div className="dialog-title">Model Slot Configuration</div>
                 <div className="dialog-fixed-size-content">
                     <div className="model-slot-container">{slotRow}</div>
                     {closeButtonRow}

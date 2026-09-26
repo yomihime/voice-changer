@@ -1,26 +1,20 @@
-# 既存 Server 用 UI のレイアウト
+# 既存 Server 用 UI
 
-`client/demo` は既存の `/info` / `/update_settings` Server 向けの画面です。
-2.1.4-alpha の操作配置を参考にしたローカル変更をここに保持します。
-今後の新フロントエンド開発入口は [`client/frontend`](../client/frontend/README.md) です。
+`client/demo/` は既存の `/info` / `/update_settings` Server に接続する互換用 UI です。
+上流のレイアウトを維持し、モデル一覧、音声デバイス、録音、詳細設定は従来の位置に表示します。
+新しい UI の開発入口は [`client/frontend/`](../client/frontend/README.md) です。
 
-- `src/css/V214.css`：`.vc-v214` 内に限定したカード、モデル一覧、操作ボタン、ダイアログの外観。
-- モデル一覧：8 件単位のページ切替、名前順 / スロット順、選択モデルのページ表示。
-- アップロード：空いている数値スロットを開く。空きがなければモデル管理へ移動。
-  配列の位置ではなく Server の `slotIndex` をアップロード対象に使用する。
-- モデル操作ボタン：最新の Server 設定を使い、古いキャッシュを送らない。
-- 音声デバイス：コントロールの「设置」から開く。閉じるボタン、背景クリック、Escape に対応。
-- モデル管理ダイアログ：要求された画面と対象を開き、閉じる際に要求を解除する。
-- 既存の音声処理と Server API は継続使用する。2.x API への変換は含まない。
+## 保守範囲
 
-## 検証（2026-09-27）
+- RVC の Legacy / Official 切り替えと、各バックエンドが対応する設定の表示を維持します。
+- Official の F0 検出器は `rmvpe` / `fcpe` / `pm` です。旧 DirectML edition の Legacy 用フィルターは適用しません。
+- 既存の音声処理と Server API、現在の依存関係に必要なビルド・型の互換修正を維持します。
+- 2.1.4 風の追加 CSS、ページ切り替え、独自のデバイス設定モーダルは使用しません。
 
-Node 24.20.0 / Webpack 5.110.3 の production ビルド成功。
-出力先はローカルの `.runtime/legacy-ui-review`。3 件の警告はバンドルサイズに関するもの。
+2.1.4-alpha 復元 UI は 2.x API を使用します。互換 UI の表示を戻しても、新フロントエンドと既存 Server の API 差異は解消しません。
 
-TypeScript の全体チェックは既存の型エラーが残っているため未通過。
-同じ依存関係でコミット基準と作業ツリーを比較し、30 件から 29 件となり、
-新たな診断はないことを確認した。主な既存問題は Web edition の依存型、
-React の JSX 型、モデル型の扱い。`*.css` の型宣言を追加して CSS import の診断を解消した。
+## 検証
 
-この整理では推論サービスやマイクを起動していない。
+ビルド出力は `.runtime/` 配下に指定し、追跡済みの `client/demo/dist/` を上書きしないでください。
+Webpack の production ビルドと TypeScript の全体チェックは別に実行します。
+現時点では Web edition の依存型、React の JSX 型、モデル型などに既存の TypeScript 診断が残っています。

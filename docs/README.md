@@ -14,7 +14,7 @@
 - [Official RVC の更新手順](rvc-upstream-update.md)
 - [Desktop Client](../client/desktop/README.md)
 - [新フロントエンドと Electron パッケージ](../client/frontend/README.md)
-- [既存 Server 用 UI のレイアウト変更](legacy-client-layout.md)
+- [既存 Server 用の互換 UI](legacy-client-layout.md)
 - [上流コードの固定バージョンと変更点](../third_party/rvc/UPSTREAM.md)
 
 統合仕様は実装上の詳細を保持しています。新規の案内は日本語を基本とします。
@@ -24,7 +24,7 @@
 | 場所 | 内容 |
 | --- | --- |
 | `client/frontend/` | 今後のフロントエンド開発入口。2.1.4-alpha 復元コード、2.x API 用 |
-| `client/demo/` | 既存 Server 用 UI。2.1.4 風のレイアウトを維持 |
+| `client/demo/` | 既存 Server 用の互換 UI。上流のレイアウトと RVC バックエンド設定を維持 |
 | `client/lib/` | ブラウザ音声処理、通信、React hooks |
 | `client/desktop/` | Electron のデスクトップウィンドウ |
 | `server/` | API、音声宿主、モデル管理、推論バックエンド |

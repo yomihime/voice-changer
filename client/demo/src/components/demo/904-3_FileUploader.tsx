@@ -206,7 +206,7 @@ export const FileUploaderScreen = (props: FileUploaderScreenProps) => {
         const buttonLabel = serverSetting.uploadProgress == 0 ? messageBuilderState.getMessage(__filename, "upload") : messageBuilderState.getMessage(__filename, "uploading") + `(${serverSetting.uploadProgress.toFixed(1)}%)`;
         return (
             <div className="dialog-frame">
-                <div className="dialog-title">模型上传</div>
+                <div className="dialog-title">File Uploader</div>
                 <div className="dialog-fixed-size-content">
                     <div className="file-uploader-header">
                         {messageBuilderState.getMessage(__filename, "header_message")} Slot[{props.targetIndex}]

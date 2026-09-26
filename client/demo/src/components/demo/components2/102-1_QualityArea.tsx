@@ -22,7 +22,7 @@ export const QualityArea = (props: QualityAreaProps) => {
                 serverSetting.serverSetting.rvcBackend === "official"
                     ? ["rmvpe", "fcpe", "pm"]
                     : Object.values(props.detectors);
-            if (edition.indexOf("onnxdirectML-cuda") >= 0) {
+            if (serverSetting.serverSetting.rvcBackend !== "official" && edition.indexOf("onnxdirectML-cuda") >= 0) {
                 const recommended = ["crepe_tiny", "rmvpe_onnx"];
                 return detectors.map((x) => {
                     if (recommended.includes(x)) {
@@ -155,7 +155,7 @@ export const QualityArea = (props: QualityAreaProps) => {
                 {threshold}
             </div>
         );
-    }, [serverSetting.serverSetting, setting, serverSetting.updateServerSettings, setVoiceChangerClientSetting]);
+    }, [serverSetting.serverSetting, setting, serverSetting.updateServerSettings, setVoiceChangerClientSetting, edition, props.detectors, webEdition]);
 
     return qualityArea;
 };

@@ -141,7 +141,7 @@ export const HeaderArea = (props: HeaderAreaProps) => {
                     </span>
                     <span className="belongings">
                         <div className="belongings-button" onClick={onClearSettingClicked}>
-                            初始化
+                            clear setting
                         </div>
                         {/* <div className="belongings-button" onClick={onReloadClicked}>reload</div>
                         <div className="belongings-button" onClick={onReselectVCClicked}>select vc</div> */}

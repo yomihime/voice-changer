@@ -7,7 +7,7 @@ import { Dialogs2 } from "./910_Dialogs2";
 export const Demo = () => {
     return (
         <GuiStateProvider>
-            <div className="main-body vc-v214">
+            <div className="main-body">
                 <Dialogs2 />
                 <Dialogs />
                 <ModelSlotControl></ModelSlotControl>
