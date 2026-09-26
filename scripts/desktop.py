@@ -15,8 +15,32 @@ import uuid
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
-APP_FILES = ("package.json", "main.cjs", "runtime.cjs", "policy.cjs", "self-test.cjs", "icon.png", "README.md")
+APP_FILES = ("package.json", "main.cjs", "runtime.cjs", "policy.cjs", "self-test.cjs", "frontend-self-test.cjs", "icon.png", "README.md")
 EXECUTABLE = "vcclient-desktop.exe"
+
+
+def frontend_files(root=ROOT):
+    """Explicit source inputs: no model, profile, reverse-engineering or dist trees."""
+    source = Path(root) / "client/frontend"
+    files = [source / name for name in ("index.html", "NOTICE.md", "server.cjs")]
+    for folder in ("src", "public"):
+        files.extend(sorted((source / folder).rglob("*")))
+    return [path for path in files if path.is_file() and not path.is_symlink()]
+
+
+def copy_frontend(application, root=ROOT):
+    source = Path(root) / "client/frontend"
+    destination = Path(application) / "frontend"
+    for file in frontend_files(root):
+        relative = file.relative_to(source)
+        if relative.as_posix() == "server.cjs":
+            output = destination / relative
+        elif relative.parts[0] == "public":
+            output = destination / "dist" / Path(*relative.parts[1:])
+        else:
+            output = destination / "dist" / relative
+        output.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(file, output)
 
 
 def file_hash(path):
@@ -36,6 +60,7 @@ def source_fingerprint(root=ROOT):
     digest = hashlib.sha256()
     files = [root / "client/desktop" / name for name in (*APP_FILES, "electron-runtime.json")]
     files += [root / "scripts/desktop.py", root / "LICENSE"]
+    files += frontend_files(root)
     for path in files:
         digest.update(path.relative_to(root).as_posix().encode())
         digest.update(bytes.fromhex(file_hash(path)))
@@ -144,6 +169,7 @@ def build(root=ROOT, archive=None):
         for name in APP_FILES:
             shutil.copyfile(root / "client/desktop" / name, application / name)
         shutil.copyfile(root / "LICENSE", application / "LICENSE")
+        copy_frontend(application, root)
         manifest = {
             "electron": spec, "sourceFingerprint": fingerprint,
             "files": {path.relative_to(stage).as_posix(): file_hash(path)
@@ -163,15 +189,38 @@ def build(root=ROOT, archive=None):
     return destination / EXECUTABLE
 
 
+def package(output, archive=None):
+    executable = build(archive=archive)
+    directory = executable.parent
+    verify(directory, source_fingerprint())
+    output = Path(output).resolve()
+    if output.exists():
+        raise RuntimeError(f"Output already exists: {output}")
+    output.parent.mkdir(parents=True, exist_ok=True)
+    partial = output.with_suffix(output.suffix + ".partial")
+    try:
+        with zipfile.ZipFile(partial, "w", zipfile.ZIP_DEFLATED, compresslevel=1) as bundle:
+            for file in sorted(directory.rglob("*")):
+                if file.is_file():
+                    bundle.write(file, Path("vcclient-desktop") / file.relative_to(directory))
+        partial.replace(output)
+    finally:
+        partial.unlink(missing_ok=True)
+    return output
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=("build", "verify"))
+    parser.add_argument("action", choices=("build", "verify", "package"))
     parser.add_argument("--archive", type=Path, help="Previously downloaded official archive (hash checked)")
+    parser.add_argument("--output", type=Path, default=ROOT / "dist/vcclient-desktop-win-x64.zip")
     args = parser.parse_args()
     if args.action == "build":
         print(build(archive=args.archive))
+    elif args.action == "package":
+        print(package(args.output, archive=args.archive))
     else:
-        manifest = verify(ROOT / ".runtime/desktop")
+        manifest = verify(ROOT / ".runtime/desktop", source_fingerprint())
         print(f"Desktop verified: Electron {manifest['electron']['version']}")
 
 

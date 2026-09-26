@@ -2,6 +2,12 @@
 
 ## 製品の構成
 
+今後のフロントエンド開発は [`client/frontend`](../client/frontend/README.md) を入口とします。
+2.1.4-alpha 配布版から復元した JavaScript を Electron に同梱し、同一オリジンの
+HTTP / WebSocket プロキシで外部 2.x Server に接続します。
+既存 Server の `/info` API との互換アダプターは未実装です。
+下図の `client/demo` / `client/lib` は既存 Server 用の経路として残っています。
+
 VCClient は、画面・音声デバイス・モデル管理と、推論バックエンドを組み合わせたリアルタイム音声変換アプリケーションです。
 
 ```mermaid

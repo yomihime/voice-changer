@@ -1,0 +1,82 @@
+{
+  "input": "E:\\AI\\voice-changer-native-client-win.exe",
+  "size": 12882432,
+  "sha256": "cbd63c440fd1f48356023d141950e62740b10ccac5fbf8f76817b73cca9c2cef",
+  "machine": "0x8664",
+  "imageBase": "0x140000000",
+  "entryPoint": "0x140833f20",
+  "peTimestamp": "2025-06-24T03:09:12.000Z",
+  "sections": [
+    {
+      "name": ".text",
+      "virtualSize": 8753712,
+      "rva": 4096,
+      "size": 8754176,
+      "offset": 1024
+    },
+    {
+      "name": ".rdata",
+      "virtualSize": 3558538,
+      "rva": 8761344,
+      "size": 3558912,
+      "offset": 8755200
+    },
+    {
+      "name": ".data",
+      "virtualSize": 13936,
+      "rva": 12320768,
+      "size": 2048,
+      "offset": 12314112
+    },
+    {
+      "name": ".pdata",
+      "virtualSize": 469728,
+      "rva": 12337152,
+      "size": 470016,
+      "offset": 12316160
+    },
+    {
+      "name": ".rsrc",
+      "virtualSize": 52896,
+      "rva": 12808192,
+      "size": 53248,
+      "offset": 12786176
+    },
+    {
+      "name": ".reloc",
+      "virtualSize": 42796,
+      "rva": 12861440,
+      "size": 43008,
+      "offset": 12839424
+    }
+  ],
+  "assets": [
+    {
+      "path": "/index.html",
+      "tableOffset": "0x8b48b8",
+      "keyOffset": "0x870b84",
+      "dataOffset": "0x870b8f",
+      "compressedBytes": 197,
+      "bytes": 410,
+      "sha256": "8d0c68616a36e13a864bf69b179de522be5bd0b19861bdce52ac402b2a2a147e"
+    },
+    {
+      "path": "/favicon.ico",
+      "tableOffset": "0x8b48d8",
+      "keyOffset": "0x870c54",
+      "dataOffset": "0x870c60",
+      "compressedBytes": 159307,
+      "bytes": 230481,
+      "sha256": "cd949b954bfe4519c7765866eeb7618b6dcb0c2a7647881dbf5fb4655e4d2d16"
+    },
+    {
+      "path": "/assets/index-DXT-JtqG.js",
+      "tableOffset": "0x8b48f8",
+      "keyOffset": "0x897aab",
+      "dataOffset": "0x897ac4",
+      "compressedBytes": 118253,
+      "bytes": 394687,
+      "sha256": "e589189f547ef30fa903c60f07c8931df79d1f23e1249b3240b756429a60bf4c"
+    }
+  ]
+}

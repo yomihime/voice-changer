@@ -11,7 +11,12 @@
     "push:docker": "bash script/001_pushDocker.sh",
     "push:docker:trainer": "bash script/002_pushDockerTrainer.sh",
     "push:docker:vcclient": "bash script/003_pushDockerVCClient.sh",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "frontend:build": "npm --prefix client/frontend run build",
+    "frontend:dev": "npm --prefix client/frontend run dev --",
+    "frontend:test": "node --test client/frontend/tests/*.test.cjs client/desktop/tests/*.test.cjs",
+    "desktop:package": "python scripts/desktop.py package",
+    "desktop:verify": "python scripts/desktop.py verify"
   },
   "repository": {
     "type": "git",

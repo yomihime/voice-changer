@@ -3,6 +3,14 @@ dummy
 node_modules
 __pycache__
 
+# Private model weights and retrieval indexes never belong in source commits.
+*.pth
+*.index
+*.pt
+*.ckpt
+*.safetensors
+*.onnx
+
 server/upload_dir/
 server/MMVC_Client_v13/
 server/MMVC_Client_v15/

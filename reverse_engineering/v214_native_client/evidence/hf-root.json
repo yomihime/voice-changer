@@ -1,0 +1,257 @@
+{
+  "url": "https://huggingface.co/api/models/wok000/vcclient000/tree/main?recursive=false&limit=1000",
+  "data": [
+    {
+      "type": "file",
+      "oid": "c7d9f3332a950355d5a77d85000f05e6f45435ea",
+      "size": 1477,
+      "path": ".gitattributes"
+    },
+    {
+      "type": "file",
+      "oid": "b1a97fb86186c1cd9b75ec04e3cd517ad8d72ada",
+      "size": 798133885,
+      "lfs": {
+        "oid": "47bce5ab36833d68e8aba0f66d557f2016a9a3590e2c5cffd46de12c885d524d",
+        "size": 798133885,
+        "pointerSize": 134
+      },
+      "xetHash": "7707885d08642094288edb55ebbc817097b2d22477385fa7d069f68660b3184d",
+      "path": "MMVCServerSIO_mac_onnxcpu-nocuda_v.1.5.3.14_onnx15_1.zip"
+    },
+    {
+      "type": "file",
+      "oid": "c676797aafd404fdc86cf787df6fa5057e6a9b84",
+      "size": 808070828,
+      "lfs": {
+        "oid": "f1990e45591de53250b283fb8aa90512890eaba58e238e7e8dca0a232e3cd186",
+        "size": 808070828,
+        "pointerSize": 134
+      },
+      "xetHash": "8d7760820d2254654a4e3f442d2aa5c0744fccfe12edae65184afc46408f0695",
+      "path": "MMVCServerSIO_mac_onnxcpu-nocuda_v.1.5.3.15.zip"
+    },
+    {
+      "type": "file",
+      "oid": "c607d77b21cca8c8f089901dfe05ebbb40cb74d6",
+      "size": 808140142,
+      "lfs": {
+        "oid": "a7afb2bcbe0e4d93b93e66121495747be12e7e4468fb8a7f222dc650b38e4c80",
+        "size": 808140142,
+        "pointerSize": 134
+      },
+      "xetHash": "cbcb9b3938e2673a034e1dc85fc5dafe30d8ff44c47707c52e9be4ea51066c69",
+      "path": "MMVCServerSIO_mac_onnxcpu-nocuda_v.1.5.3.17b.zip"
+    },
+    {
+      "type": "file",
+      "oid": "c3919a1075a689220a33550c1f68dcc9931ff7f3",
+      "size": 3127143757,
+      "lfs": {
+        "oid": "1136cd55d51fda024fbbab3de28d3fdcee6dc49ba2b41a7c5fd8abf8710152e7",
+        "size": 3127143757,
+        "pointerSize": 135
+      },
+      "xetHash": "e541032f716b0018958b938b2d8d8508281ae53fcf3d75b4021327b178a3e4f4",
+      "path": "MMVCServerSIO_win_onnxdirectML-cuda_v.1.5.3.15.zip"
+    },
+    {
+      "type": "file",
+      "oid": "afc7389d359bd87eb38ec6f5a7437bfd95f0b485",
+      "size": 3152657907,
+      "lfs": {
+        "oid": "590c5615120f79a7c7acd69ba4c9dd61e4cbc9f5eb53d7ea7bef055c4fd6f9a4",
+        "size": 3152657907,
+        "pointerSize": 135
+      },
+      "xetHash": "fee9af270947dbe7aba84eaac7005ee70bc59398169f60329b2361bd185a8363",
+      "path": "MMVCServerSIO_win_onnxdirectML-cuda_v.1.5.3.16a.zip"
+    },
+    {
+      "type": "file",
+      "oid": "133af7b9236ad02cc73e3dcfcb89536e48991901",
+      "size": 3153872478,
+      "lfs": {
+        "oid": "5681201059538b2242538fddc31194525d71597d80a13bf39b0b83404d070964",
+        "size": 3153872478,
+        "pointerSize": 135
+      },
+      "xetHash": "7999500eb4e4b6fa5ca5da7c2786491098733f6825e4df4ac5fdc6ee465d5278",
+      "path": "MMVCServerSIO_win_onnxdirectML-cuda_v.1.5.3.17b.zip"
+    },
+    {
+      "type": "file",
+      "oid": "7766c9c1c7290093940c52ffd4c844fc823feeae",
+      "size": 3193035571,
+      "lfs": {
+        "oid": "03ad516c98cca72b22c9e73b9a58a5325cd461da9b1061871113faa93a79c12c",
+        "size": 3193035571,
+        "pointerSize": 135
+      },
+      "xetHash": "cd2c0cf90225472a6bdd8fc650e0617738ed9f4a9ab861013fc3c51c8a761503",
+      "path": "MMVCServerSIO_win_onnxdirectML-cuda_v.1.5.3.18a.zip"
+    },
+    {
+      "type": "file",
+      "oid": "a4fa87e6992931436bb2c2534e8fd5ffa9f95b25",
+      "size": 3242133943,
+      "lfs": {
+        "oid": "149889a002c4976ef6b6efaef4c118adb161377c118e103f84a7341469bd1b9f",
+        "size": 3242133943,
+        "pointerSize": 135
+      },
+      "xetHash": "67da4ebd9c1de323e9b09779cdff13214fb91af2afa858600b65fd9cfe96d70d",
+      "path": "MMVCServerSIO_win_onnxgpu-cuda_v.1.5.3.15.zip"
+    },
+    {
+      "type": "file",
+      "oid": "e4836cc2c5b7bef280bdb8d9880a42ddebab64b6",
+      "size": 3267647868,
+      "lfs": {
+        "oid": "0e4e98d23b672dce845c8dd754a3da02d77b1fe63554fb23eeddd3ff8cd5995f",
+        "size": 3267647868,
+        "pointerSize": 135
+      },
+      "xetHash": "8478cf90086fd626771afeff43167df96a86d8ebeb3ac9d656a53737a128c3c7",
+      "path": "MMVCServerSIO_win_onnxgpu-cuda_v.1.5.3.16a.zip"
+    },
+    {
+      "type": "file",
+      "oid": "6f04bc353703b776c8cdb4f0dd73ea6641d0f851",
+      "size": 3268862521,
+      "lfs": {
+        "oid": "5b8ce137d78d7a6afa71402b4048b89cf8a5dad2adbf83e9882eb598302e79bc",
+        "size": 3268862521,
+        "pointerSize": 135
+      },
+      "xetHash": "60f9cc6ea71fb689b336eab00e160c6af5a3852362eb819307fc4d751c29aef8",
+      "path": "MMVCServerSIO_win_onnxgpu-cuda_v.1.5.3.17b.zip"
+    },
+    {
+      "type": "file",
+      "oid": "c311f0672d1950da0f8bdd65f13a1869fa170bed",
+      "size": 3308026202,
+      "lfs": {
+        "oid": "d3b3458a3e7f9944336f446477d10a0987ca12fc97b2e6f5ab0aa75e50577ceb",
+        "size": 3308026202,
+        "pointerSize": 135
+      },
+      "xetHash": "f0cc1f5b83d7e2f78d54909c94b79e62decf4a4a79d7a707b528160f8eb45577",
+      "path": "MMVCServerSIO_win_onnxgpu-cuda_v.1.5.3.18a.zip"
+    },
+    {
+      "type": "file",
+      "oid": "61ebe4a95d8c89599b5dd470c224ee7de22c4164",
+      "size": 48,
+      "path": "README.md"
+    },
+    {
+      "type": "file",
+      "oid": "62d26e26fdd72d86c21452dd00ad75e1a31b3c5b",
+      "size": 513777621,
+      "lfs": {
+        "oid": "d9b697a45719e9273516fb97113e973b60e469731ac8c34526bbc7b957193b98",
+        "size": 513777621,
+        "pointerSize": 134
+      },
+      "xetHash": "5c4bf49b65067fd018d51dce059a491d3255dae98367c17549284e6a97138c9e",
+      "path": "vcclient_mac_2.0.78-beta.zip"
+    },
+    {
+      "type": "file",
+      "oid": "f60c688476aa72524a058a4229593068f8800f05",
+      "size": 546350507,
+      "lfs": {
+        "oid": "7b7f529da3763ce27116ab392848b9f8dd4da7430d5f06ebc82f94cbc66afdab",
+        "size": 546350507,
+        "pointerSize": 134
+      },
+      "xetHash": "98b76dd3d66ea1dc0f48505dd6aebf969ba11fa193b6d220bb7215fe3f7f439e",
+      "path": "vcclient_mac_2.1.4-alpha.zip"
+    },
+    {
+      "type": "file",
+      "oid": "54e04162512316240166c5727a3e787400b1b8a6",
+      "size": 277515963,
+      "lfs": {
+        "oid": "341f5f3e898c5404d0dda3595f1b721b8d07aebd698871932451b44cd4fb9eed",
+        "size": 277515963,
+        "pointerSize": 134
+      },
+      "xetHash": "f6f7c7dd6871eb1a08ecf44dcdc4c6fe85b9873945bf272556016c90d15df945",
+      "path": "vcclient_std_lin_aarch64_2.2.2-beta_only_beatrice.zip"
+    },
+    {
+      "type": "file",
+      "oid": "adb3451b9f7fe1a673de819660f7001e48b29a9a",
+      "size": 114277344,
+      "lfs": {
+        "oid": "f3c584ce2b065ede208dd30435e97b1d55a13419821fd66d365fef0293c0c727",
+        "size": 114277344,
+        "pointerSize": 134
+      },
+      "xetHash": "e59cb5e6ca21131ff62a811a57aae0acf730bc0325059fea74b00abb401154b4",
+      "path": "vcclient_std_mac_2.2.2-beta_only_beatrice.zip"
+    },
+    {
+      "type": "file",
+      "oid": "57f20951f945a79ccb75d2723c653de40f473875",
+      "size": 133939372,
+      "lfs": {
+        "oid": "ca7dd6e1255277667ad6ef2128c1fbbff0fae3f19e96aa86c2f59cf75040a150",
+        "size": 133939372,
+        "pointerSize": 134
+      },
+      "xetHash": "b54e45287c2b5a5f7e6261f5f2e5705a4ed60ae8716170c595d0f4875f662795",
+      "path": "vcclient_std_win_2.2.2-beta_only_beatrice.zip"
+    },
+    {
+      "type": "file",
+      "oid": "59eecadfa2aa2acc101980462306c9d11b44cf62",
+      "size": 3729875618,
+      "lfs": {
+        "oid": "1ca9151005ab64658cfc4bf40f845008d2543abe7ff67db2da9d6889f07f7ae0",
+        "size": 3729875618,
+        "pointerSize": 135
+      },
+      "xetHash": "15595526a2da77d58bdb7294d69cb8332d2c5d42a3fbf4a826518fef7161bf32",
+      "path": "vcclient_win_cuda_2.0.78-beta.zip"
+    },
+    {
+      "type": "file",
+      "oid": "f3c3141e0e2ab771ae0568d10ebcab950ba17380",
+      "size": 3756753257,
+      "lfs": {
+        "oid": "58ced135e0768a9f382461fab13a8967520fde2d307d39c0ab4b830040f9c70f",
+        "size": 3756753257,
+        "pointerSize": 135
+      },
+      "xetHash": "f7a31432d204cb629813270aa4f3cda9fdb7f927381eb8111c8ad6b86453477e",
+      "path": "vcclient_win_cuda_2.1.4-alpha.zip"
+    },
+    {
+      "type": "file",
+      "oid": "e8e6d04dc31fc61c4b64734160290c629a0d221a",
+      "size": 2935690226,
+      "lfs": {
+        "oid": "3cb4929bd692e8ed12eb57d665d06af7788901a45bab3d2c372e37aa2bb9adab",
+        "size": 2935690226,
+        "pointerSize": 135
+      },
+      "xetHash": "3257893cf212e903a4d3b8aa457954c3466e14fc43db63239c4616b18b217f40",
+      "path": "vcclient_win_dml_2.1.4-alpha.zip"
+    },
+    {
+      "type": "file",
+      "oid": "33b0a3f383aa065cc86e906267bccd88428e5913",
+      "size": 423217051,
+      "lfs": {
+        "oid": "69c275e6ab4d2bf85ce61c0e1a61bd0f57267ca5914eeb26ac840184ee2724b8",
+        "size": 423217051,
+        "pointerSize": 134
+      },
+      "xetHash": "6983e5458625f2f526a684d7c31019e8a3ee6aff6121096d3e789609f76ab66b",
+      "path": "vcclient_win_std_2.0.78-beta.zip"
+    }
+  ]
+}

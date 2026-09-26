@@ -17,6 +17,8 @@ Recorder（音声収録ツール）は保守対象外です。ソースは履歴
 
 ## ドキュメント
 
+- [新前端（2.1.4-alpha）开发、Electron 启动与打包](client/frontend/README.md)：后续前端开发入口。
+
 - [インストール・起動・パッケージ作成](docs/windows-setup.md)
 - [ドキュメント一覧・ディレクトリ案内](docs/README.md)
 - [現在の構成と開発方針](docs/architecture.md)

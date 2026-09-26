@@ -1,0 +1,7 @@
+/* Fork-specific styles, loaded after the recovered app stylesheet. */
+#backend-status {
+  position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%);
+  z-index: 1500; max-width: min(820px, 90vw); padding: 12px 18px;
+  border: 1px solid #be8937; border-radius: 8px; background: #322717;
+  color: #ffe0aa; font: 14px/1.6 system-ui, sans-serif;
+}

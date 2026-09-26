@@ -25,7 +25,9 @@ test('navigation keeps exact origin and rejects credentials', () => {
 });
 test('strict CLI rejects old Electron switches and duplicate options', () => {
   assert.equal(parseArgs(['--url', 'http://127.0.0.1:18888/', '--deny-media']).denyMedia, true);
-  for (const args of [[], ['-u', 'http://127.0.0.1/'], ['--url'],
+  assert.equal(parseArgs([]).backend, 'http://127.0.0.1:18000/');
+  assert.equal(parseArgs(['--backend', 'http://127.0.0.1:18001']).backend, 'http://127.0.0.1:18001/');
+  for (const args of [['--url', 'http://127.0.0.1/', '--backend', 'http://127.0.0.1/'], ['-u', 'http://127.0.0.1/'], ['--url'],
     ['--url', 'http://127.0.0.1/', '--url', 'http://127.0.0.1/'],
     ['--url', 'http://127.0.0.1/', '--profile-root', 'relative']]) assert.throws(() => parseArgs(args));
 });

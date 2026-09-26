@@ -1,0 +1,9 @@
+{
+  "verifiedFiles": 96,
+  "moduleSyntaxChecks": 27,
+  "localImports": [
+    "./browser-ponyfill-8xTspxQN.js"
+  ],
+  "version": "2.1.4-alpha",
+  "nativeExactMatch": true
+}

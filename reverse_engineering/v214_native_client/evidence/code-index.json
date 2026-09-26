@@ -1,0 +1,428 @@
+{
+  "declarations": [
+    {
+      "name": "LinkArea",
+      "start": 34649,
+      "end": 34812,
+      "output": "readable/modules/LinkArea.js"
+    },
+    {
+      "name": "FileUploaderClient",
+      "start": 35068,
+      "end": 35123,
+      "output": "readable/modules/FileUploaderClient.js"
+    },
+    {
+      "name": "RestClient",
+      "start": 35149,
+      "end": 35264,
+      "output": "readable/modules/RestClient.js"
+    },
+    {
+      "name": "VCRestClient",
+      "start": 35265,
+      "end": 35498,
+      "output": "readable/modules/VCRestClient.js"
+    },
+    {
+      "name": "VoiceChangerClient",
+      "start": 93720,
+      "end": 94031,
+      "output": "readable/modules/VoiceChangerClient.js"
+    },
+    {
+      "name": "IconArea",
+      "start": 94723,
+      "end": 94869,
+      "output": "readable/modules/IconArea.js"
+    },
+    {
+      "name": "InfoArea",
+      "start": 94888,
+      "end": 95202,
+      "output": "readable/modules/InfoArea.js"
+    },
+    {
+      "name": "ModelUploadDialog",
+      "start": 95208,
+      "end": 95602,
+      "output": "readable/modules/ModelUploadDialog.js"
+    },
+    {
+      "name": "SampleModelDailog",
+      "start": 95754,
+      "end": 96019,
+      "output": "readable/modules/SampleModelDailog.js"
+    },
+    {
+      "name": "ModelList",
+      "start": 96020,
+      "end": 96146,
+      "output": "readable/modules/ModelList.js"
+    },
+    {
+      "name": "ModelEditDialog",
+      "start": 96147,
+      "end": 96222,
+      "output": "readable/modules/ModelEditDialog.js"
+    },
+    {
+      "name": "ModelSelector",
+      "start": 96223,
+      "end": 96651,
+      "output": "readable/modules/ModelSelector.js"
+    },
+    {
+      "name": "HeaderArea",
+      "start": 96652,
+      "end": 96722,
+      "output": "readable/modules/HeaderArea.js"
+    },
+    {
+      "name": "VoiceCharacterEditDialog",
+      "start": 96725,
+      "end": 96944,
+      "output": "readable/modules/VoiceCharacterEditDialog.js"
+    },
+    {
+      "name": "PortraitArea",
+      "start": 96947,
+      "end": 97235,
+      "output": "readable/modules/PortraitArea.js"
+    },
+    {
+      "name": "SettingsDialog",
+      "start": 97260,
+      "end": 98344,
+      "output": "readable/modules/SettingsDialog.js"
+    },
+    {
+      "name": "MainControls",
+      "start": 98372,
+      "end": 98748,
+      "output": "readable/modules/MainControls.js"
+    },
+    {
+      "name": "useGlobalSetting",
+      "start": 98988,
+      "end": 99126,
+      "output": "readable/modules/useGlobalSetting.js"
+    },
+    {
+      "name": "InputControls",
+      "start": 99128,
+      "end": 99818,
+      "output": "readable/modules/InputControls.js"
+    },
+    {
+      "name": "VolumeControls",
+      "start": 99819,
+      "end": 100036,
+      "output": "readable/modules/VolumeControls.js"
+    },
+    {
+      "name": "useAppGuiSetting",
+      "start": 100043,
+      "end": 100079,
+      "output": "readable/modules/useAppGuiSetting.js"
+    },
+    {
+      "name": "VoiceControls",
+      "start": 100357,
+      "end": 100884,
+      "output": "readable/modules/VoiceControls.js"
+    },
+    {
+      "name": "Controls",
+      "start": 100885,
+      "end": 100911,
+      "output": "readable/modules/Controls.js"
+    },
+    {
+      "name": "PerformanceArea",
+      "start": 100915,
+      "end": 101326,
+      "output": "readable/modules/PerformanceArea.js"
+    },
+    {
+      "name": "ControlArea",
+      "start": 101327,
+      "end": 101362,
+      "output": "readable/modules/ControlArea.js"
+    },
+    {
+      "name": "AdvancedSettingDialog",
+      "start": 101363,
+      "end": 101748,
+      "output": "readable/modules/AdvancedSettingDialog.js"
+    },
+    {
+      "name": "ShortcutSettingDialog",
+      "start": 101757,
+      "end": 102211,
+      "output": "readable/modules/ShortcutSettingDialog.js"
+    },
+    {
+      "name": "AdvancedArea",
+      "start": 102260,
+      "end": 102349,
+      "output": "readable/modules/AdvancedArea.js"
+    },
+    {
+      "name": "Demo",
+      "start": 102350,
+      "end": 102394,
+      "output": "readable/modules/Demo.js"
+    },
+    {
+      "name": "App",
+      "start": 102395,
+      "end": 102415,
+      "output": "readable/modules/App.js"
+    },
+    {
+      "name": "useAudioConfig",
+      "start": 102418,
+      "end": 102504,
+      "output": "readable/modules/useAudioConfig.js"
+    },
+    {
+      "name": "DefaultServerConfiguration",
+      "start": 102507,
+      "end": 102541,
+      "output": "readable/modules/DefaultServerConfiguration.js"
+    },
+    {
+      "name": "useServerConfig",
+      "start": 102542,
+      "end": 102825,
+      "output": "readable/modules/useServerConfig.js"
+    },
+    {
+      "name": "AppRootProvider",
+      "start": 104769,
+      "end": 104849,
+      "output": "readable/modules/AppRootProvider.js"
+    },
+    {
+      "name": "useVoiceChangerClient",
+      "start": 104852,
+      "end": 105157,
+      "output": "readable/modules/useVoiceChangerClient.js"
+    },
+    {
+      "name": "AppStateProvider",
+      "start": 105158,
+      "end": 105176,
+      "output": "readable/modules/AppStateProvider.js"
+    },
+    {
+      "name": "useHotKeySetting",
+      "start": 105206,
+      "end": 105593,
+      "output": "readable/modules/useHotKeySetting.js"
+    },
+    {
+      "name": "HotkeyProvider",
+      "start": 105594,
+      "end": 105600,
+      "output": "readable/modules/HotkeyProvider.js"
+    }
+  ],
+  "endpoints": [
+    {
+      "path": "/api/uploader/upload_file_chunk",
+      "line": 35083
+    },
+    {
+      "path": "/api/uploader/concat_uploaded_file_chunk",
+      "line": 35113
+    },
+    {
+      "path": "/api/operation/initialize",
+      "line": 35288
+    },
+    {
+      "path": "/api/audio-device-manager/input_devices",
+      "line": 35292
+    },
+    {
+      "path": "/api/audio-device-manager/output_devices",
+      "line": 35296
+    },
+    {
+      "path": "/api/configuration-manager/configuration",
+      "line": 35300
+    },
+    {
+      "path": "/api/configuration-manager/configuration",
+      "line": 35304
+    },
+    {
+      "path": "/api/gpu-device-manager/devices",
+      "line": 35308
+    },
+    {
+      "path": "/api/module-manager/modules",
+      "line": 35312
+    },
+    {
+      "path": "/api/module-manager/modules/operation/download_applio_modules",
+      "line": 35317
+    },
+    {
+      "path": "/api/sample-manager/samples",
+      "line": 35322
+    },
+    {
+      "path": "/api/sample-manager/samples/operation/download",
+      "line": 35327
+    },
+    {
+      "path": "/api/slot-manager/slots",
+      "line": 35333
+    },
+    {
+      "path": "/api/slot-manager/slots/${C}",
+      "line": 35337
+    },
+    {
+      "path": "/api/slot-manager/slots",
+      "line": 35353
+    },
+    {
+      "path": "/api/slot-manager/slots",
+      "line": 35368
+    },
+    {
+      "path": "/api/slot-manager/slots/operation/set_icon_file",
+      "line": 35382
+    },
+    {
+      "path": "/api/slot-manager/slots/${C.slot_index}",
+      "line": 35388
+    },
+    {
+      "path": "/api/slot-manager/slots/${C}",
+      "line": 35392
+    },
+    {
+      "path": "/api/slot-manager/slots/operation/merge_models",
+      "line": 35397
+    },
+    {
+      "path": "/api/slot-manager/slots/operation/export_onnx",
+      "line": 35403
+    },
+    {
+      "path": "/api/slot-manager/slots/operation/export",
+      "line": 35408
+    },
+    {
+      "path": "/api/slot-manager/slots/operation/move_merged_model",
+      "line": 35413
+    },
+    {
+      "path": "/api/slot-manager/slots/operation/move_exported_onnx_model",
+      "line": 35419
+    },
+    {
+      "path": "/api/slot-manager/slots/operation/move_model",
+      "line": 35424
+    },
+    {
+      "path": "/api/voice-changer/operation/refresh_queue",
+      "line": 35428
+    },
+    {
+      "path": "/api/local-voice-changer-interface/operation/start",
+      "line": 35433
+    },
+    {
+      "path": "/api/local-voice-changer-interface/operation/stop",
+      "line": 35439
+    },
+    {
+      "path": "/api/local-voice-changer-interface/operation/truncate-output-buffer",
+      "line": 35445
+    },
+    {
+      "path": "/api/voice-changer-manager/information",
+      "line": 35450
+    },
+    {
+      "path": "/api/local-voice-changer-interface/information",
+      "line": 35455
+    },
+    {
+      "path": "/api/task-manager/tasks/${C}",
+      "line": 35460
+    },
+    {
+      "path": "/api/task-manager/tasks/${C}",
+      "line": 35464
+    },
+    {
+      "path": "/api/slot-manager/slots/operation/beatricev2/set_voice_icon_file",
+      "line": 35472
+    },
+    {
+      "path": "/api/slot-manager/slots/operation/beatricev2/set_voice_name",
+      "line": 35479
+    },
+    {
+      "path": "/api/slot-manager/slots/operation/beatricev2/set_voice_description",
+      "line": 35486
+    },
+    {
+      "path": "/api/local-voice-changer-interface/operation/set_dummy_input",
+      "line": 35493
+    },
+    {
+      "path": "/api/voice-changer/convert_chunk_bulk",
+      "line": 38161
+    },
+    {
+      "path": "/api/voice-changer/convert_chunk",
+      "line": 38162
+    }
+  ],
+  "nativeCalls": [
+    {
+      "name": "set_clear_site_data_and_stop_app",
+      "line": 102281
+    },
+    {
+      "name": "open_browser_url",
+      "line": 102289
+    },
+    {
+      "name": "plugin:event|unlisten",
+      "line": 105195
+    },
+    {
+      "name": "plugin:event|listen",
+      "line": 105200
+    },
+    {
+      "name": "get_shortcut_settings",
+      "line": 105290
+    },
+    {
+      "name": "update_shortcut_settings",
+      "line": 105304
+    },
+    {
+      "name": "register_shortcuts",
+      "line": 105305
+    },
+    {
+      "name": "shortcut-action",
+      "line": 105389
+    },
+    {
+      "name": "show_notification_window_with_message",
+      "line": 105553
+    }
+  ]
+}

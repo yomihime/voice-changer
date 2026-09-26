@@ -1,0 +1,19 @@
+# Reproducible local artifacts, kept outside normal application builds.
+web_front/
+extracted/
+dev_front/
+readable/native-client.js
+readable/main-ui.js
+evidence/upstream-tree-*.json
+evidence/author-repositories.json
+__pycache__/
+runtime-test/
+
+# Local-only model tests, screenshots and microphone statistics.
+*_TEST.md
+evidence/*-inference.json
+evidence/*-loaded.png
+evidence/*-test.json
+evidence/*.png
+scripts/smoke_*.mjs
+scripts/mic_*.py

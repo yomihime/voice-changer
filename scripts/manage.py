@@ -21,6 +21,7 @@ VERSIONS = json.loads((ROOT / "scripts/runtime-versions.json").read_text(encodin
 PACKAGE_SUPPORT_FILES = (
     "start-windows.bat",
     "start-client-windows.bat",
+    "start-frontend-windows.bat",
     "server-gui-windows.bat",
     "scripts/windows.ps1",
     "scripts/windows-launcher.ps1",
@@ -34,7 +35,7 @@ PACKAGE_SUPPORT_FILES = (
     "docs/windows-setup.md",
 )
 DESKTOP_APP_FILES = (
-    "package.json", "main.cjs", "runtime.cjs", "policy.cjs", "self-test.cjs", "icon.png",
+    "package.json", "main.cjs", "runtime.cjs", "policy.cjs", "self-test.cjs", "frontend-self-test.cjs", "icon.png",
     "electron-runtime.json", "README.md",
 )
 
