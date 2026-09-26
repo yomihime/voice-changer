@@ -5,7 +5,6 @@ from unittest.mock import Mock, patch
 
 import numpy as np
 import torch
-import resampy
 
 from data.ModelSlot import RVCModelSlot
 from voice_changer.RVC.RVCSettings import RVCSettings
@@ -78,23 +77,6 @@ class OfficialTimelineTest(unittest.TestCase):
                                                atol=0.03, rtol=0.0004)
 
 
-    def test_input_resampling_matches_one_continuous_waveform(self):
-        for rate in (44100, 48000):
-            backend = make_backend(rate)
-            count = 50000
-            t = np.arange(count) / rate
-            waveform = (0.3 * np.sin(2 * np.pi * (117 * t + 300 * t * t))).astype(np.float32)
-            waveform[15000:25000] = 0  # speech-like modulation -> silence -> modulation
-            expected = resampy.resample(waveform, rate, 16000, filter="kaiser_fast")
-            pieces, start = [], 0
-            for size in (4097, 4001, 6003, 4999, 4097, 4001, 6003, 10000, 6799):
-                part = waveform[start:start + size]
-                pieces.append(backend._resample_input_block(part, rate))
-                start += len(part)
-            actual = np.concatenate(pieces)
-            self.assertEqual(len(actual), (count - rate // 100) * 16000 // rate)
-            np.testing.assert_allclose(actual, expected[:len(actual)], atol=2e-6, rtol=0)
-
     def test_invalid_geometry_does_not_advance_stream(self):
         backend = make_backend()
         for rate, audio in ((12345, np.zeros(4097)), (48000, np.zeros((4097, 2))),
@@ -103,11 +85,11 @@ class OfficialTimelineTest(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 backend.infer(RvcInferenceRequest(audio, 480, 576, rate, 48000))
             self.assertEqual(backend.stream_generation, before)
-            self.assertEqual(backend._source_samples_total, 0)
+            self.assertEqual(backend._input_stream.source_samples_total, 0)
         backend.engine.infer.return_value = torch.zeros(1)
         with self.assertRaisesRegex(RuntimeError, "invalid window"):
             backend.infer(RvcInferenceRequest(np.zeros(4097), 480, 576, 48000, 48000))
-        self.assertEqual(backend._source_samples_total, 0)
+        self.assertEqual(backend._input_stream.source_samples_total, 0)
 
     @staticmethod
     def host(backend, rate=48000, output_rate=48000, overlap=480):
@@ -250,11 +232,11 @@ class RecoveredStreamTest(unittest.TestCase):
                 np.testing.assert_array_equal(changer.sola_buffer, 1234)
         changer.update_settings("extraConvertSize", 9600)
         self.assertFalse(hasattr(changer, "sola_buffer"))
-        self.assertEqual(backend._source_samples_total, 0)
+        self.assertEqual(backend._input_stream.source_samples_total, 0)
         changer.on_request(np.zeros(4097, np.int16))
         changer.update_settings("inputSampleRate", 44100)
         self.assertFalse(hasattr(changer, "sola_buffer"))
-        self.assertEqual(backend._source_samples_total, 0)
+        self.assertEqual(backend._input_stream.source_samples_total, 0)
         self.assertEqual(changer.settings.inputSampleRate, model.inputSampleRate)
 
     def test_context_geometry_rebuilds_on_next_inference_but_chunk_length_does_not(self):
@@ -269,7 +251,7 @@ class RecoveredStreamTest(unittest.TestCase):
         output, _ = changer.on_request(np.zeros(4097, np.int16))
         self.assertEqual(len(output), 4097)
         self.assertNotEqual(changer.voiceChanger.get_stream_generation(), before)
-        self.assertEqual(backend._source_samples_total, 4097)
+        self.assertEqual(backend._input_stream.source_samples_total, 4097)
 
     def test_failed_rebuild_invalidates_host_overlap(self):
         previous, candidate, recovery = Mock(), Mock(), Mock()

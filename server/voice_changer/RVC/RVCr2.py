@@ -10,6 +10,7 @@ from data.ModelSlot import RVCModelSlot
 from mods.log_control import VoiceChangaerLogger
 from voice_changer.RVC.RVCSettings import RVCSettings
 from voice_changer.RVC.backend.base import RvcBackendConfig, RvcInferenceRequest
+from voice_changer.RVC.backend.config_mapping import SUPPORTED_UPSTREAM_F0_METHODS
 from voice_changer.RVC.backend.exceptions import RvcBackendError
 from voice_changer.RVC.backend.factory import create_rvc_backend
 from voice_changer.utils.VoiceChangerModel import AudioInOut, VoiceChangerModel
@@ -74,11 +75,7 @@ class RVCr2(VoiceChangerModel):
 
     @staticmethod
     def _map_f0_for_backend(settings: RVCSettings, kind: str) -> None:
-        if kind == "official" and settings.f0Detector not in {
-            "rmvpe",
-            "fcpe",
-            "pm",
-        }:
+        if kind == "official" and settings.f0Detector not in SUPPORTED_UPSTREAM_F0_METHODS:
             logger.info(
                 "[Voice Changer][RVC] f0Detector %s is unavailable in Official; using rmvpe",
                 settings.f0Detector,

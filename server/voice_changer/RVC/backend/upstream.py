@@ -29,6 +29,7 @@ from voice_changer.RVC.backend.metrics import (
     RollingInferenceMetrics,
     cuda_memory_snapshot,
 )
+from voice_changer.RVC.backend.input_stream import OfficialInputStream
 from voice_changer.RVC.backend.upstream_loader import load_upstream_module
 from voice_changer.RVC.deviceManager.DeviceManager import DeviceManager
 
@@ -58,16 +59,7 @@ class UpstreamRvcBackend:
         self.device = torch.device("cpu")
         self.input_sample_rate = 48000
         self.output_sample_rate = 48000
-        self.input_buffer: torch.Tensor | None = None
-        self._stream_rates: tuple[int, int] | None = None
-        self._source_tail = np.empty(0, dtype=np.float32)
-        self._pending_input_16k = np.empty(0, dtype=np.float32)
-        self._source_samples_total = 0
-        self._resampled_samples_total = 0
-        self._output_samples_total = 0
-        self._processed_samples_16k = 0
-        self._stream_context = None
-        self.stream_generation = getattr(self, "stream_generation", 0) + 1
+        self._reset_stream_state()
         self._ready = False
         self.metrics = RollingInferenceMetrics()
 
@@ -210,12 +202,9 @@ class UpstreamRvcBackend:
         self._ready = True
 
     def _reset_stream_state(self) -> None:
-        self.input_buffer = None
-        self._stream_rates = None
-        self._source_tail = np.empty(0, dtype=np.float32)
-        self._pending_input_16k = np.empty(0, dtype=np.float32)
-        self._source_samples_total = 0
-        self._resampled_samples_total = 0
+        self.input_buffer: torch.Tensor | None = None
+        self._stream_rates: tuple[int, int] | None = None
+        self._input_stream = OfficialInputStream()
         self._output_samples_total = 0
         self._processed_samples_16k = 0
         self._stream_context = None
@@ -326,27 +315,6 @@ class UpstreamRvcBackend:
         self._stream_rates = rates
         self._stream_context = context
 
-    def _resample_input_block(self, normalized: np.ndarray, input_sample_rate: int) -> np.ndarray:
-        source_start = self._source_samples_total - len(self._source_tail)
-        source = np.concatenate((self._source_tail, normalized))
-        self._source_samples_total += len(normalized)
-        frame = input_sample_rate // 100
-        # Retain filter context on the global 10 ms grid. A 10 ms lookahead
-        # makes the resampling kernel independent of arbitrary host boundaries.
-        keep = min(len(source), self._source_samples_total % frame + 4 * frame)
-        self._source_tail = source[-keep:].copy()
-        target_total = max(0, (self._source_samples_total - frame) * 16000 // input_sample_rate)
-        offset = self._resampled_samples_total - source_start * 16000 // input_sample_rate
-        count = target_total - self._resampled_samples_total
-        if count <= 0:
-            return np.empty(0, dtype=np.float32)
-        resampled = resampy.resample(source, input_sample_rate, 16000, filter="kaiser_fast")
-        result = resampled[offset:offset + count].astype(np.float32, copy=False)
-        if len(result) != count:
-            raise RvcInferenceError("Official input resampling timeline underflow")
-        self._resampled_samples_total = target_total
-        return result
-
     def _infer_window(self, processed: np.ndarray, extra_16k: int,
                       start: int, length: int, output_rate: int) -> np.ndarray:
         block = len(processed)
@@ -418,14 +386,9 @@ class UpstreamRvcBackend:
         if self.engine.tgt_sr not in {32000, 40000, 48000}:
             raise RvcBackendConfigError("Official model sample rate must be 32000, 40000 or 48000")
         self._ensure_stream(request)
-        normalized = request.audio.astype(np.float32) / 32768.0
-        audio_16k = self._resample_input_block(normalized, request.input_sample_rate)
-        self._pending_input_16k = np.concatenate((self._pending_input_16k, audio_16k))
-        process_length = len(self._pending_input_16k) // 160 * 160
-        processed = self._pending_input_16k[:process_length]
-        self._pending_input_16k = self._pending_input_16k[process_length:]
+        processed = self._input_stream.push(request.audio, request.input_sample_rate)
         extra_16k = self._round_to_10ms_16k(self.settings.extraConvertSize, request.input_sample_rate)
-        target_total = self._source_samples_total * request.output_sample_rate // request.input_sample_rate
+        target_total = self._input_stream.source_samples_total * request.output_sample_rate // request.input_sample_rate
         block_length = target_total - self._output_samples_total
         context = sum(samples * request.output_sample_rate // request.input_sample_rate
                       for samples in (request.crossfade_frame, request.sola_search_frame))
