@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import {
+  VoiceChangerServerSetting,
   ServerInfo,
   ServerSettingKey,
   OnnxExporterInfo,
@@ -121,14 +122,12 @@ export const useServerSetting = (
   const updateServerSettings = useMemo(() => {
     return async (setting: ServerInfo) => {
       if (!props.voiceChangerClient) return;
-      const currentSettings: Partial<Record<ServerSettingKey, unknown>> = serverSetting;
-      const nextSettings: Partial<Record<ServerSettingKey, unknown>> = setting;
       for (let i = 0; i < Object.values(ServerSettingKey).length; i++) {
         const k = Object.values(ServerSettingKey)[
           i
-        ];
-        const cur_v = currentSettings[k];
-        const new_v = nextSettings[k];
+        ] as keyof VoiceChangerServerSetting;
+        const cur_v = serverSetting[k];
+        const new_v = setting[k];
 
         if (cur_v != new_v) {
           const res = await props.voiceChangerClient.updateServerSettings(

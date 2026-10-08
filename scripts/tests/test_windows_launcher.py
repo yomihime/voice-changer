@@ -166,33 +166,63 @@ class EndpointIdentityTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("Client URL:", result.stdout)
 
+    def test_default_and_compatibility_switch_open_browser_without_starting_a_server(self):
+        for option, opens in (("", True), ("-Browser", True), ("-NoBrowser", False)):
+            with self.subTest(option=option), JsonServer(vc_info()) as server:
+                command = (
+                    "function Start-Process { param([string]$FilePath); "
+                    'if ($FilePath -notlike "http://127.0.0.1:*") { throw "Unexpected process launch" }; '
+                    'Write-Output ("BROWSER:" + $FilePath) }; '
+                    f"& {ps_quote(CLIENT)} -Port {server.port} {option}"
+                )
+                result = powershell(command)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertEqual(f"BROWSER:http://127.0.0.1:{server.port}/" in result.stdout, opens)
+                self.assertTrue(endpoint_state(server.port)["IsHttpReady"])
+
 
 class ProcessOwnershipTest(unittest.TestCase):
-    def test_desktop_urls_are_serialized_after_all_switches(self):
-        with tempfile.TemporaryDirectory() as directory:
-            executable = Path(directory) / ".runtime" / "desktop" / "vcclient-desktop.exe"
-            executable.parent.mkdir(parents=True)
-            executable.touch()
-            command = (
-                f"$script:captured = @(); "
-                "function Start-Process { param([string]$FilePath,[string]$ArgumentList,"
-                "[string]$WorkingDirectory,[switch]$PassThru,[string]$WindowStyle); "
-                "$script:captured += $ArgumentList; return [pscustomobject]@{Id=1;"
-                "StartTime=[datetime]::Now} }; "
-                f". {ps_quote(HELPER)}; "
-                f"Start-VCClientDesktop -RepositoryRoot {ps_quote(directory)} "
-                f"-Url 'http://127.0.0.1:18888/' -WaitForWindow | Out-Null; "
-                f"Open-VCClient -Uri ([uri]'http://127.0.0.1:18888/') -Mode Desktop "
-                f"-DesktopExecutable {ps_quote(executable)} "
-                "-AdditionalArguments @('--profile-root', 'C:\\tmp profile', '--deny-media', '--hidden') | Out-Null; "
-                "$script:captured | ConvertTo-Json -Compress"
-            )
-            result = powershell(command)
+    def test_browser_opener_passes_the_exact_compatibility_url(self):
+        command = (
+            "function Start-Process { param([string]$FilePath,[switch]$PassThru); "
+            "return $FilePath }; "
+            f". {ps_quote(HELPER)}; "
+            "Open-VCClient -Uri ([uri]'http://127.0.0.1:18888/')"
+        )
+        result = powershell(command)
         self.assertEqual(result.returncode, 0, result.stderr)
-        captured = json.loads(result.stdout)
-        self.assertEqual(captured[0], "--wait --url http://127.0.0.1:18888/")
-        self.assertTrue(captured[1].startswith('--profile-root "C:\\tmp profile" --deny-media --hidden --url '))
-        self.assertTrue(captured[1].endswith('http://127.0.0.1:18888/'))
+        self.assertEqual(result.stdout.strip(), "http://127.0.0.1:18888/")
+
+    def test_browser_launcher_waits_and_stops_only_its_new_server(self):
+        for option, stops in (("", True), ("-Browser", True), ("-NoBrowser", False)):
+            with self.subTest(option=option), tempfile.TemporaryDirectory() as directory:
+                scripts = Path(directory) / "scripts"
+                scripts.mkdir()
+                launcher = scripts / "start-client.ps1"
+                launcher.write_bytes(CLIENT.read_bytes())
+                (scripts / "windows-launcher.ps1").write_text(
+                    "function Get-VCClientEndpointState { [pscustomobject]@{Kind='Closed'; IsVCClient=$false} }\n"
+                    "function Start-VCClientServerProcess { Write-Host 'OWNED-START'; "
+                    "[pscustomobject]@{OwnsProcess=$true} }\n"
+                    "function Wait-VCClientEndpoint { [pscustomobject]@{Kind='Ready'; "
+                    "State=[pscustomobject]@{Kind='VCClientNoModel'}} }\n"
+                    "function Stop-VCClientOwnedProcess { param($Owner); "
+                    "if (!$Owner.OwnsProcess) { throw 'Unknown owner' }; "
+                    "Write-Host 'OWNED-STOP'; [pscustomobject]@{Success=$true} }\n",
+                    encoding="utf-8",
+                )
+                result = powershell(
+                    "function Start-Process { Write-Host 'BROWSER-OPEN' }; "
+                    "function Read-Host { Write-Host 'STOP-PROMPT'; return '' }; "
+                    f"& {ps_quote(launcher)} -Port 18888 {option}"
+                )
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertIn("OWNED-START", result.stdout)
+            self.assertEqual("OWNED-STOP" in result.stdout, stops)
+            self.assertEqual("STOP-PROMPT" in result.stdout, stops)
+            if stops:
+                self.assertLess(result.stdout.index("BROWSER-OPEN"), result.stdout.index("STOP-PROMPT"))
+                self.assertLess(result.stdout.index("STOP-PROMPT"), result.stdout.index("OWNED-STOP"))
 
     def test_unowned_process_is_never_stopped(self):
         command = (

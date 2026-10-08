@@ -16,6 +16,7 @@ import subprocess
 import sys
 import tempfile
 import threading
+import webbrowser
 
 
 @dataclass(frozen=True)
@@ -274,10 +275,8 @@ class ServerController:
         state = probe_endpoint(port)
         if not state.ready:
             raise RuntimeError("Voice Changer Server 尚未就绪，无法打开客户端。")
-        desktop = self.root / ".runtime/desktop/vcclient-desktop.exe"
-        if not desktop.is_file():
-            raise FileNotFoundError("桌面客户端尚未构建，请运行 python scripts/desktop.py build。")
-        return subprocess.Popen([str(desktop), "--url", state.url], cwd=desktop.parent)
+        if not webbrowser.open(state.url):
+            raise RuntimeError("无法打开浏览器；请手动访问 " + state.url)
 
     def read_logs(self, max_lines: int = 240) -> str:
         if max_lines < 1:

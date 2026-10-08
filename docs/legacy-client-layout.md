@@ -1,20 +1,20 @@
 # 既存 Server 用 UI
 
-`client/demo/` は既存の `/info` / `/update_settings` Server に接続する互換用 UI です。
-上流のレイアウトを維持し、モデル一覧、音声デバイス、録音、詳細設定は従来の位置に表示します。
-新しい UI の開発入口は [`client/frontend/`](../client/frontend/README.md) です。
+`client/frontend/` 以外の `client/` は、上流追跡ブランチの
+`d8ef15799470193f7c8176ef471245753a656626` と同じ内容に戻しました。
+`client/demo/` と `client/lib/` の独自 UI、バックエンド選択、F0 設定、
+依存関係・型・ビルド修正は撤回し、fork の `client/desktop/` Electron シェルは撤去しました。
 
-## 保守範囲
+互換 UI は既存の `/info` / `/update_settings` Server 用です。インストールと
+パッケージ作成では、上流の配布済み `client/demo/dist/` を `.runtime/frontend/` に
+コピーします。旧 demo/lib の npm インストールや再ビルドは行いません。
+更新時の以前の出力は `.runtime/frontend-backup-*` に保持します。
+既存の Electron ランタイム、プロファイル、モデルは自動削除しません。
 
-- RVC の Legacy / Official 切り替えと、各バックエンドが対応する設定の表示を維持します。
-- Official の F0 検出器は `rmvpe` / `fcpe` / `pm` です。旧 DirectML edition の Legacy 用フィルターは適用しません。
-- 既存の音声処理と Server API、現在の依存関係に必要なビルド・型の互換修正を維持します。
-- 2.1.4 風の追加 CSS、ページ切り替え、独自のデバイス設定モーダルは使用しません。
+Server の Legacy / Official バックエンドと API は維持しますが、上流 UI に
+fork 専用の選択コントロールはありません。
 
-2.1.4-alpha 復元 UI は 2.x API を使用します。互換 UI の表示を戻しても、新フロントエンドと既存 Server の API 差異は解消しません。
-
-## 検証
-
-ビルド出力は `.runtime/` 配下に指定し、追跡済みの `client/demo/dist/` を上書きしないでください。
-Webpack の production ビルドと TypeScript の全体チェックは別に実行します。
-現時点では Web edition の依存型、React の JSX 型、モデル型などに既存の TypeScript 診断が残っています。
+新 UI とデスクトップ版の開発入口は
+[`client/frontend/`](../client/frontend/README.md) と
+[Tauri の手順](../client/frontend/TAURI.md) です。新 Client は 2.x API 用であり、
+既存 Server の旧 API へのアダプターは未実装です。

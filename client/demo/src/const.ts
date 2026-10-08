@@ -15,10 +15,11 @@ export const INDEXEDDB_KEY_DEFAULT_MODEL_TYPE = "INDEXEDDB_KEY_DEFALT_MODEL_TYPE
 export const MODEL_ICON_BLANK_URL = "/assets/icons/blank.png"
 
 export const isDesktopApp = () => {
-    // Detect the legacy bridge by capability. User-agent checks misclassify a
-    // plain Electron shell and make the existing openBrowser calls unsafe.
-    return typeof window !== "undefined" &&
-        typeof window.electronAPI?.openBrowser === "function";
+    if (navigator.userAgent.indexOf('Electron') >= 0) {
+        return true;
+    } else {
+        return false;
+    }
 };
 
 

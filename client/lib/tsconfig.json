@@ -1,8 +1,6 @@
 {
     "compilerOptions": {
         "target": "ES2020",
-        "rootDir": "./src",
-        "types": ["node", "jest"],
         "declaration": true,
         "outDir": "./dist",
 
@@ -18,8 +16,7 @@
         "noImplicitReturns": true,
 
         /* Module解決方法 */
-        "module": "ESNext",
-        "moduleResolution": "bundler",
+        "moduleResolution": "node",
         "esModuleInterop": true,
         // "isolatedModules": true,
         "allowSyntheticDefaultImports": true,

@@ -14,9 +14,9 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "frontend:build": "npm --prefix client/frontend run build",
     "frontend:dev": "npm --prefix client/frontend run dev --",
-    "frontend:test": "node --test client/frontend/tests/*.test.cjs client/desktop/tests/*.test.cjs",
-    "desktop:package": "python scripts/desktop.py package",
-    "desktop:verify": "python scripts/desktop.py verify"
+    "frontend:test": "npm --prefix client/frontend test",
+    "desktop:build": "npm --prefix client/frontend run desktop:build",
+    "desktop:test": "npm --prefix client/frontend run test:desktop"
   },
   "repository": {
     "type": "git",

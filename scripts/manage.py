@@ -14,6 +14,7 @@ import subprocess
 import sys
 import tempfile
 import urllib.request
+import uuid
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -34,7 +35,6 @@ PACKAGE_SUPPORT_FILES = (
     "scripts/server_gui/app.py",
     "scripts/server_gui/view.py",
     "scripts/server_gui/runtime.py",
-    "scripts/desktop.py",
     "scripts/manage.py",
     "scripts/check_environment.py",
     "scripts/runtime-versions.json",
@@ -69,50 +69,42 @@ def verified_download(url, sha256, destination):
         raise RuntimeError(f"Cached download checksum mismatch: {destination}")
 
 
-def node_environment():
-    node = VERSIONS["node"]
-    directory = RUNTIME / f"node-{node['version']}-win-x64"
-    if not (directory / "npm.cmd").is_file():
-        archive = RUNTIME / f"node-{node['version']}-win-x64.zip"
-        verified_download(node["url"], node["sha256"], archive)
-        with zipfile.ZipFile(archive) as bundle:
-            bundle.extractall(RUNTIME)
-    env = os.environ.copy()
-    env["PATH"] = str(directory) + os.pathsep + env.get("PATH", "")
-    env["npm_config_cache"] = str(RUNTIME / "npm-cache")
-    return directory / "npm.cmd", env
-
-
 def frontend_fingerprint():
-    """Fingerprint only client/lib and client/demo, never the independent client."""
+    """Fingerprint the untouched upstream compatibility assets, not client sources."""
+    source = ROOT / "client/demo/dist"
     digest = hashlib.sha256()
-    for part in ("lib", "demo"):
-        folder = ROOT / "client" / part
-        files = list(folder.glob("*.json")) + list(folder.glob("*.js"))
-        for subdir in ("src", "worklet/src", "public"):
-            files.extend(p for p in (folder / subdir).rglob("*") if p.is_file()
-                         and "models" not in p.relative_to(folder).parts)
-        for path in sorted(set(files)):
-            digest.update(path.relative_to(ROOT).as_posix().encode())
+    for path in sorted(source.rglob("*")):
+        if path.is_symlink():
+            raise RuntimeError("Linked compatibility assets are not supported")
+        if path.is_file():
+            digest.update(path.relative_to(source).as_posix().encode())
             digest.update(bytes.fromhex(file_hash(path)))
     return digest.hexdigest()
 
 
 def build_frontend():
-    """Build the legacy Server UI; client/frontend owns its separate build."""
-    npm, env = node_environment()
-    run([npm, "ci", "--no-audit", "--no-fund"], cwd=ROOT / "client/lib", env=env)
-    run([npm, "run", "build:prod"], cwd=ROOT / "client/lib", env=env)
-    # --install-links packs the local library instead of linking two React trees.
-    run([npm, "ci", "--install-links", "--no-audit", "--no-fund"], cwd=ROOT / "client/demo", env=env)
-    installed_library = ROOT / "client/demo/node_modules/@dannadori/voice-changer-client-js/dist/index.js"
-    if file_hash(installed_library) != file_hash(ROOT / "client/lib/dist/index.js"):
-        raise RuntimeError("Installed client library differs from the local build; refresh the demo's file dependency lock")
-    run([npm, "run", "webpack:prod", "--", "--output-path", RUNTIME / "frontend"],
-        cwd=ROOT / "client/demo", env=env)
-    if not (RUNTIME / "frontend/index.html").is_file():
-        raise RuntimeError("Frontend build did not produce index.html")
-    (RUNTIME / "frontend.sha256").write_text(frontend_fingerprint(), encoding="ascii")
+    """Stage the upstream prebuilt UI without installing or compiling legacy clients."""
+    source = ROOT / "client/demo/dist"
+    if source.is_symlink() or not (source / "index.html").is_file():
+        raise RuntimeError("Upstream compatibility UI assets are missing or linked")
+    fingerprint = frontend_fingerprint()
+    RUNTIME.mkdir(parents=True, exist_ok=True)
+    destination = RUNTIME / "frontend"
+    if destination.is_symlink() or destination.resolve().parent != RUNTIME.resolve():
+        raise RuntimeError("Compatibility UI destination escaped the runtime directory")
+    backup = RUNTIME / f"frontend-backup-{uuid.uuid4().hex}"
+    with tempfile.TemporaryDirectory(prefix="upstream-ui-", dir=RUNTIME) as temporary:
+        stage = Path(temporary) / "frontend"
+        copy_tree(source, stage)
+        if destination.exists():
+            destination.rename(backup)
+        try:
+            stage.rename(destination)
+        except OSError:
+            if backup.exists():
+                backup.rename(destination)
+            raise
+    (RUNTIME / "frontend.sha256").write_text(fingerprint, encoding="ascii")
 
 
 def install():
@@ -123,7 +115,6 @@ def install():
          "--index", VERSIONS["torch_index"], "--index-strategy", "unsafe-best-match"])
     run([uv, "pip", "check", "--python", sys.executable])
     build_frontend()
-    build_desktop()
     check()
     (RUNTIME / "installed.sha256").write_text(file_hash(LOCK), encoding="ascii")
     print("Installation verified. Run start-windows.bat.")
@@ -158,11 +149,6 @@ def check():
     run([sys.executable, ROOT / "scripts/check_environment.py"], cwd=ROOT / "server")
 
 
-def build_desktop():
-    """Assemble the pinned Electron runtime used by the legacy Windows client."""
-    run([sys.executable, ROOT / "scripts/desktop.py", "build"])
-
-
 def ensure_installed():
     if (RUNTIME / "portable/python.exe").is_file():
         return
@@ -174,9 +160,6 @@ def ensure_installed():
         if (not (RUNTIME / "frontend/index.html").is_file() or not frontend_stamp.is_file()
                 or frontend_stamp.read_text(encoding="ascii") != frontend_fingerprint()):
             build_frontend()
-        # Keep the source installation's Electron runtime aligned as well. build_desktop
-        # verifies the manifest fingerprint and returns immediately when it is current.
-        build_desktop()
 
 
 def launch_env():
@@ -240,7 +223,6 @@ def build(output):
     ensure_installed()
     install_gui()
     check()
-    build_desktop()
     if Path(sys.prefix).resolve() != (ROOT / ".venv").resolve():
         raise RuntimeError("Build requires the verified source virtual environment")
     output = output.resolve()
@@ -265,7 +247,6 @@ def build(output):
         for path in ROOT.glob("LICENSE*"):
             shutil.copy2(path, stage / path.name)
         copy_tree(RUNTIME / "frontend", stage / ".runtime/frontend")
-        copy_tree(RUNTIME / "desktop", stage / ".runtime/desktop")
         print("Copying the portable Python runtime and dependencies...", flush=True)
         # Copy a relocatable standalone interpreter, never the absolute-path venv.
         portable = stage / ".runtime/portable"

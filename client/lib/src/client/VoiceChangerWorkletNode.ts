@@ -28,7 +28,7 @@ export class VoiceChangerWorkletNode extends AudioWorkletNode {
   private listener: VoiceChangerWorkletListener;
 
   private setting: WorkletNodeSetting = DefaultClientSettng.workletNodeSetting;
-  private requestChunks: ArrayBufferLike[] = [];
+  private requestChunks: ArrayBuffer[] = [];
   private socket: Socket<DefaultEventsMap, DefaultEventsMap> | null = null;
   // performance monitor
   private bufferStart = 0;
@@ -149,7 +149,7 @@ export class VoiceChangerWorkletNode extends AudioWorkletNode {
     }
   };
 
-  postReceivedVoice = (data: ArrayBufferLike) => {
+  postReceivedVoice = (data: ArrayBuffer) => {
     // Int16 to Float
     const i16Data = new Int16Array(data);
     const f32Data = new Float32Array(i16Data.length);
@@ -312,7 +312,7 @@ export class VoiceChangerWorkletNode extends AudioWorkletNode {
     }
   }
 
-  private sendBuffer = async (newBuffer: Uint8Array<ArrayBuffer>) => {
+  private sendBuffer = async (newBuffer: Uint8Array) => {
     const timestamp = Date.now();
     if (this.setting.protocol === "sio") {
       if (!this.socket) {

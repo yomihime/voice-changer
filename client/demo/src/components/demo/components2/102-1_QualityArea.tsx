@@ -18,13 +18,9 @@ export const QualityArea = (props: QualityAreaProps) => {
         }
 
         const generateF0DetOptions = () => {
-            const detectors =
-                serverSetting.serverSetting.rvcBackend === "official"
-                    ? ["rmvpe", "fcpe", "pm"]
-                    : Object.values(props.detectors);
-            if (serverSetting.serverSetting.rvcBackend !== "official" && edition.indexOf("onnxdirectML-cuda") >= 0) {
+            if (edition.indexOf("onnxdirectML-cuda") >= 0) {
                 const recommended = ["crepe_tiny", "rmvpe_onnx"];
-                return detectors.map((x) => {
+                return Object.values(props.detectors).map((x) => {
                     if (recommended.includes(x)) {
                         return (
                             <option key={x} value={x}>
@@ -40,7 +36,7 @@ export const QualityArea = (props: QualityAreaProps) => {
                     }
                 });
             } else {
-                return detectors.map((x) => {
+                return Object.values(props.detectors).map((x) => {
                     return (
                         <option key={x} value={x}>
                             {x}
@@ -70,7 +66,7 @@ export const QualityArea = (props: QualityAreaProps) => {
             </div>
         );
 
-        const threshold = webEdition || serverSetting.serverSetting.rvcBackend === "official" ? (
+        const threshold = webEdition ? (
             <></>
         ) : (
             <div className="config-sub-area-control">
@@ -155,7 +151,7 @@ export const QualityArea = (props: QualityAreaProps) => {
                 {threshold}
             </div>
         );
-    }, [serverSetting.serverSetting, setting, serverSetting.updateServerSettings, setVoiceChangerClientSetting, edition, props.detectors, webEdition]);
+    }, [serverSetting.serverSetting, setting, serverSetting.updateServerSettings, setVoiceChangerClientSetting]);
 
     return qualityArea;
 };

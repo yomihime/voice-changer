@@ -1,7 +1,8 @@
 # Voice Changer Server
 
 服务端控制台使用 **PyQt6 + PyQt6-Fluent-Widgets 社区版**（Python 模块名 `qfluentwidgets`）。
-它负责管理 Python 变声服务；Electron 桌面客户端是另一个应用，通过“打开客户端”进入。
+它负责管理 Python 变声服务；“打开客户端”会在默认浏览器中打开源项目的兼容页面。
+新客户端使用独立的 Tauri 2 打包，目前面向 2.x API，尚未适配此处的旧服务端协议。
 
 ## 启动与依赖
 

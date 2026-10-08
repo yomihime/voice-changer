@@ -13,8 +13,8 @@ Python、Anaconda、Node.js、CUDA Toolkit の事前インストールは不要�
 
 リポジトリを clone するか、ソースコードの ZIP をダウンロードして展開してください。
 
-1. `install-windows.bat` をダブルクリックします。ツールのダウンロードと検証、依存ライブラリのインストール、フロントエンドのビルド、実行環境のチェックを行います。
-2. `start-client-windows.bat` をダブルクリックします。Server を非表示で起動し、VCClient 固有の `/info` 応答を確認してから独立した Electron Client ウィンドウを開きます。初回のインストールやウェイトのダウンロードには数分以上かかることがあるため、完了するまで待ってください。ログは `.runtime/launcher/` に保存されます。
+1. `install-windows.bat` をダブルクリックします。ツールのダウンロードと検証、依存ライブラリのインストール、上流互換 UI のコピー、実行環境のチェックを行います。
+2. `start-client-windows.bat` をダブルクリックします。Server を非表示で起動し、VCClient 固有の `/info` 応答を確認してから上流互換 UI を既定ブラウザで開きます。初回のインストールやウェイトのダウンロードには数分以上かかることがあるため、完了するまで待ってください。ログは `.runtime/launcher/` に保存されます。
 3. Client でモデルを登録します。Server だけを起動したい場合は従来どおり `start-windows.bat` を使用します。
 
 起動後の設定とモデルスロットは従来どおりサーバ側で管理します。既定のバックエンドは Legacy です。
@@ -41,14 +41,9 @@ start-client-windows.bat -Browser
 サービス、壊れた JSON、TCP 接続だけのプロセスは VCClient として扱わず、終了コード
 2 で停止します。起動中のインストールまたはウェイト取得は `-ReadyTimeoutSeconds`
 （既定 900 秒）まで待ち、タイムアウト時は自分で起動したプロセスツリーだけを停止します。
-既定は独立 Desktop Client です。`-Browser` を指定した場合だけ既定ブラウザで開きます。`-NoBrowser` は URL の表示だけを行う自動試験用です。Desktop Client をソースから組み立てる場合は、固定した Electron ZIP を検証して次を実行します。
+既定ブラウザで上流互換 UI を開きます。`-Browser` は互換用の別名、`-NoBrowser` は URL の表示のみです。旧 Electron シェルの組み立てと同梱は終了しました。
 
-```powershell
-python scripts/desktop.py build
-python scripts/desktop.py verify
-```
-
-ポータブル ZIP には検証済み Electron 実行環境（`Electron 44.2.0`）を含めます。`node.exe`、Rust、MSVC、WebView2 は配布先で不要です。Desktop Client の設定は `%LOCALAPPDATA%/Yomihime/VoiceChanger/Desktop/` に保存され、原作者版の設定とは分離されます。マイクは Client 内の確認ダイアログで許可した場合だけ使用します。
+ブラウザを閉じても Server は停止しません。ランチャーが新しく開始したサービスは、開いたままの起動ウィンドウで Enter を押すと停止します。`-NoBrowser` は待機せず URL を表示して終了します。開始・停止を GUI で管理する場合は、最初から Server GUI でサービスを開始してください。GUI が停止できるのは自分で開始したサービスだけです。`start-client-windows.bat` で開始した既存サービスは GUI では外部サービスとして扱います。既存のデスクトップ実行環境、プロファイル、モデルは自動削除しません。
 
 ## 独立した新フロントエンドの開発
 
@@ -56,7 +51,7 @@ python scripts/desktop.py verify
 [voice-changer-client](https://github.com/yomihime/voice-changer-client) で管理します。
 このリポジトリでは `client/frontend` を Git submodule として参照します。
 Server のインストール、起動、パッケージ作成には子モジュールの取得もビルドも不要です。
-`client/demo` / `client/lib` と既存 Electron Client は従来の Server UI 用です。
+`client/demo` / `client/lib` は上流原版の参照・互換 UI です。配布済み dist をブラウザで使用します。
 
 ```powershell
 git submodule update --init client/frontend
@@ -67,15 +62,15 @@ npm run dev
 ```
 
 接続設定と必要な Node 環境は新リポジトリの README を参照してください。
-出力は新リポジトリ内の `dist/` に置きます。新クライアントの配布方式は独立して決定します。
+ブラウザ出力は新リポジトリ内の `dist/` に置きます。デスクトップ版は Tauri 2 の EXE / NSIS インストーラーとして独立してビルドします。詳細は [TAURI.md](../client/frontend/TAURI.md) を参照してください。新 Client は 2.x API 用で、既存 Server の旧 API アダプターは未実装です。
 旧 `build-frontend-windows.bat` / `start-frontend-windows.bat` は移行案内のみを表示し、
-Electron のビルドや新 UI の起動は行いません。
+旧 demo のビルドや新 UI の起動は行いません。
 
 ## Voice Changer Server GUI
 
 `server-gui-windows.bat` から **Voice Changer Server** を開きます。
 UI は PyQt6 / qfluentwidgets のコミュニティ版を使用し、設定、プロセス管理、
-トレイ、ログ表示を提供します。Electron Client とは別のサービス管理アプリです。
+トレイ、ログ表示を提供します。新 Tauri Client とは別のサービス管理アプリです。
 
 依存関係は `server/requirements/windows-gui.lock` で固定しています。
 ソース版の初回 GUI 起動時に必要な GUI ライブラリだけを導入します。
@@ -117,7 +112,6 @@ Legacy / Official のモジュール読み込み、リサンプリング、HTTPS
 
 - Python 本体と固定した Python ライブラリ
 - ビルド済みフロントエンドとサーバの実行コード
-- 固定 Electron 44.2.0 Desktop Client と Chromium のライセンス
 - 固定バージョンの Official RVC 実行コードとライセンス
 - 起動スクリプト、環境チェック、ファイル検証用の `package-manifest.json`
 
@@ -169,26 +163,32 @@ Python の全依存バージョンと SHA-256 は `server/requirements/windows-c
 | fairseq | fairseq-fixed 0.12.3.1 | CPython 3.12 の Windows wheel を提供するサードパーティー互換版です。Meta 公式の新バージョンや fairseq2 ではありません。 |
 | Hydra / OmegaConf | 1.3.2 / 2.3.0 | fairseq-fixed の固定依存に合わせています。 |
 | pyworld | 0.3.5 | 0.3.6 には CPython 3.12 の Windows wheel がないため、利用者側でのコンパイルを避けています。 |
-| Node.js | 24.20.0 LTS / 同梱 npm 11 | 公式のポータブル版と検証値を固定しています。 |
-| React | 19.2.8 | アプリとローカルのクライアントライブラリで揃えています。 |
-| TypeScript | 6.0.3 | webpack の ts-loader が使用する JavaScript コンパイラー API を維持します。TypeScript 7 のネイティブツールチェーンには移行していません。 |
-| ESLint | 9.39.5 | eslint-plugin-react が宣言する対応範囲に合わせています。peer 依存を強制的に無視しません。 |
+| Node.js | 新 Client の開発環境に従う | Server の導入・互換 UI のコピーには不要です。 |
 
 参考：[PyTorch](https://docs.pytorch.org/get-started/locally/)、[torchaudio](https://docs.pytorch.org/audio/stable/installation.html)、[ONNX CUDA](https://onnxruntime.ai/docs/execution-providers/CUDA-ExecutionProvider.html)、[fairseq-fixed](https://pypi.org/project/fairseq-fixed/)、[互換版ソース](https://github.com/JackismyShephard/fairseq)、[pyworld](https://pypi.org/project/pyworld/)、[Node.js](https://nodejs.org/dist/v24.20.0/)。
 
 Legacy HuBERT の読み込みでは、既知の fairseq Dictionary メタデータのみを局所的に許可します。Torch の weights-only 制限をプロセス全体で無効にしません。別形式の checkpoint が読み込めない場合は、その内容を確認して個別に対応してください。
 
-`client/demo` は `file:../lib` でこのリポジトリのクライアントを使用します。`--install-links` でインストールし、フロントエンドを `.runtime/frontend` に生成します。リポジトリ内の既存デモ用ビルド成果物を、新しいインストールに流用しません。
+`client/demo` / `client/lib` の依存関係と配布済み dist は上流原版を保持します。互換 UI は `client/demo/dist` から `.runtime/frontend` にコピーし、以前の出力は `.runtime/frontend-backup-*` に残します。新 Client の依存・ロックファイルは独立リポジトリで管理します。
 
 ## 更新・トラブルシューティング
 
 - Python の更新：`server/requirements/windows-cuda.in` を編集し、lock を再生成します。環境チェックと実モデルの確認後に反映してください。lock のバージョンやハッシュだけを手作業で書き換えないでください。
-- フロントエンドの更新：`client/lib` を先にビルドし、`client/demo` のローカル依存を更新します。`npm ci --install-links` と本番ビルドを確認してください。
+- フロントエンドの更新：新 Client は独立リポジトリでビルド・テストします。上流互換 UI の更新は上流の原版 dist を確認して反映し、旧 demo/lib に独自修正を追加しません。
 - ダウンロード失敗：ターミナルのエラーと接続先を確認して再実行してください。検証に失敗したキャッシュは削除して取得し直し、ハッシュ検証は無効にしないでください。
 - GPU チェック失敗：選択した CUDA バージョンにドライバーと GPU が対応しているか確認してください。CPU への暗黙の切り替えは行いません。
 - インストール中断：ビルドと環境チェックがすべて成功した後にだけ完了マーカーを書きます。再実行して続行できます。
 - モデルと設定：依存ライブラリを再インストールしても、既存のモデルと設定ディレクトリは消去しません。
 - ポート使用中：起動は失敗コードを返して終了します。別のポートを指定するか、そのポートを使用しているアプリケーションを終了してください。
+
+### 更新確認（2026-10-08）
+
+- `client/frontend` 以外の `client/` は上流追跡コミットとファイル・モード・blob が一致します。
+- 上流互換 UI の 26 ファイルを実際にコピーし、コピー先と以前の出力のバックアップを SHA-256 で照合しました。
+- Python スクリプト全体の 52 テストと、その後追加したブラウザ起動・停止検証を含むランチャー 13 テストが通過しました。サービスの識別は HTTP fixture、停止の流れは模擬サービスと合成プロセスで検証しています。
+- 新 Client の Node 9 テスト、Rust 22 テスト、ブラウザ確認、Tauri release EXE / NSIS ビルド、実際の WebView2 と模擬バックエンドによる確認が通過しました。詳細と制限は新 Client の `VALIDATION.md` に記録しています。
+
+この更新では CUDA ポータブル ZIP 全体、実モデル推論、実マイク入力、物理ショートカットは再検証していません。下記は以前の構成による記録です。
 
 ### 動作確認記録（2026-09-07）
 

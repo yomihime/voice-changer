@@ -58,7 +58,6 @@ export const F0Detector = {
     rmvpe: "rmvpe",
     rmvpe_onnx: "rmvpe_onnx",
     fcpe: "fcpe",
-    pm: "pm",
 } as const;
 export type F0Detector = (typeof F0Detector)[keyof typeof F0Detector];
 
@@ -80,18 +79,11 @@ export const RVCModelType = {
 } as const;
 export type RVCModelType = (typeof RVCModelType)[keyof typeof RVCModelType];
 
-export const RVCBackend = {
-    legacy: "legacy",
-    official: "official",
-} as const;
-export type RVCBackend = (typeof RVCBackend)[keyof typeof RVCBackend];
-
 export const ServerSettingKey = {
     passThrough: "passThrough",
     srcId: "srcId",
     dstId: "dstId",
     gpu: "gpu",
-    rvcBackend: "rvcBackend",
 
     crossFadeOffsetRate: "crossFadeOffsetRate",
     crossFadeEndRate: "crossFadeEndRate",
@@ -157,18 +149,6 @@ export type VoiceChangerServerSetting = {
     srcId: number;
     dstId: number;
     gpu: number;
-    rvcBackend: RVCBackend;
-    backendError?: string | null;
-    pipelineInfo?: {
-        backend?: RVCBackend;
-        ready?: boolean;
-        device?: string;
-        gpuName?: string;
-        upstreamCommit?: string;
-        supportedSettings?: string[];
-        meanInferenceMs?: number | null;
-        [key: string]: unknown;
-    };
 
     crossFadeOffsetRate: number;
     crossFadeEndRate: number;
@@ -423,7 +403,6 @@ export const DefaultServerSetting: ServerInfo = {
     srcId: 0,
     dstId: 1,
     gpu: 0,
-    rvcBackend: RVCBackend.legacy,
 
     f0Factor: 1.0,
     f0Detector: F0Detector.rmvpe_onnx,

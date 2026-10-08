@@ -12,6 +12,10 @@ The first-stage runtime selector is `rvcBackend=legacy|official`, defaults to
 `legacy`, is persisted as an application setting, and is deliberately not part
 of `RVCModelSlot`.
 
+2026-10-08: `client/demo` / `client/lib` は上流原版に戻し、fork 独自の
+バックエンド選択 UI は撤回しました。Server の `rvcBackend` API と
+Legacy / Official の実装は維持しています。
+
 ## Current VCClient call paths
 
 ### Browser/LAN client

@@ -122,23 +122,6 @@ function Join-VCClientCommandLine {
     return (($ArgumentList | ForEach-Object { ConvertTo-VCClientQuotedArgument -Argument ([string]$_) }) -join ' ')
 }
 
-function Start-VCClientDesktop {
-    param(
-        [Parameter(Mandatory = $true)][string]$RepositoryRoot,
-        [Parameter(Mandatory = $true)][string]$Url,
-        [switch]$WaitForWindow
-    )
-    $desktop = Join-Path $RepositoryRoot '.runtime\desktop\vcclient-desktop.exe'
-    if (!(Test-Path -LiteralPath $desktop -PathType Leaf)) {
-        throw "Desktop Client is not built: $desktop. Run python scripts/desktop.py build."
-    }
-    $arguments = @()
-    if ($WaitForWindow) { $arguments += '--wait' }
-    $arguments += @('--url', $Url)
-    return Start-Process -FilePath $desktop -ArgumentList (Join-VCClientCommandLine -ArgumentList $arguments) `
-        -WorkingDirectory (Split-Path -Parent $desktop) -PassThru -WindowStyle Normal
-}
-
 function Start-VCClientServerProcess {
     param(
         [Parameter(Mandatory = $true)][string]$WindowsScript,
@@ -239,18 +222,6 @@ function Wait-VCClientEndpoint {
 }
 
 function Open-VCClient {
-    param(
-        [Parameter(Mandatory = $true)][uri]$Uri,
-        [ValidateSet('Browser', 'Desktop')][string]$Mode = 'Browser',
-        [string]$DesktopExecutable = '',
-        [string[]]$AdditionalArguments = @()
-    )
-    if ($Mode -eq 'Desktop') {
-        if ([string]::IsNullOrWhiteSpace($DesktopExecutable) -or !(Test-Path -LiteralPath $DesktopExecutable -PathType Leaf)) {
-            throw "VCClient desktop executable was not found: $DesktopExecutable"
-        }
-        $arguments = @($AdditionalArguments) + @('--url', $Uri.AbsoluteUri)
-        return Start-Process -FilePath $DesktopExecutable -ArgumentList (Join-VCClientCommandLine -ArgumentList $arguments) -PassThru
-    }
+    param([Parameter(Mandatory = $true)][uri]$Uri)
     return Start-Process -FilePath $Uri.AbsoluteUri -PassThru
 }

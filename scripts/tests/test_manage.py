@@ -36,16 +36,27 @@ class DistributionBoundaryTest(unittest.TestCase):
         self.assertIn("scripts/start-client.ps1", manage.PACKAGE_SUPPORT_FILES)
         self.assertIn("scripts/windows-launcher.ps1", manage.PACKAGE_SUPPORT_FILES)
 
-    def test_legacy_build_never_runs_in_the_independent_client(self):
-        with patch.object(manage, "node_environment", return_value=("npm", {})), \
-                patch.object(manage, "run") as run, \
-                patch.object(manage, "file_hash", return_value="same"), \
-                patch.object(manage, "frontend_fingerprint", return_value="fingerprint"), \
-                patch.object(Path, "is_file", return_value=True), \
-                patch.object(Path, "write_text"):
-            manage.build_frontend()
-        self.assertEqual({call.kwargs["cwd"] for call in run.call_args_list},
-                         {manage.ROOT / "client/lib", manage.ROOT / "client/demo"})
+    def test_legacy_assets_are_copied_without_compiling_and_old_output_is_preserved(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "client/demo/dist"
+            (source / "assets").mkdir(parents=True)
+            (source / "index.html").write_text("upstream", encoding="utf-8")
+            (source / "assets/ui.js").write_text("upstream-js", encoding="utf-8")
+            runtime = root / ".runtime"
+            (runtime / "frontend").mkdir(parents=True)
+            (runtime / "frontend/old.js").write_text("old fork output", encoding="utf-8")
+            with patch.object(manage, "ROOT", root), patch.object(manage, "RUNTIME", runtime), \
+                    patch.object(manage, "run") as run:
+                manage.build_frontend()
+                self.assertEqual((runtime / "frontend.sha256").read_text(), manage.frontend_fingerprint())
+            run.assert_not_called()
+            self.assertEqual((runtime / "frontend/index.html").read_text(), "upstream")
+            self.assertEqual((runtime / "frontend/assets/ui.js").read_text(), "upstream-js")
+            self.assertFalse((runtime / "frontend/old.js").exists())
+            backups = list(runtime.glob("frontend-backup-*"))
+            self.assertEqual(len(backups), 1)
+            self.assertEqual((backups[0] / "old.js").read_text(), "old fork output")
         self.assertNotIn("start-frontend-windows.bat", manage.PACKAGE_SUPPORT_FILES)
 
     def test_server_gui_is_packaged(self):
@@ -68,8 +79,8 @@ class DistributionBoundaryTest(unittest.TestCase):
                 with patch.object(manage.metadata, "version", side_effect=manage.metadata.PackageNotFoundError):
                     self.assertFalse(manage.gui_dependencies_ready())
 
-    def test_desktop_builder_is_packaged(self):
-        self.assertIn("scripts/desktop.py", manage.PACKAGE_SUPPORT_FILES)
+    def test_retired_desktop_builder_is_not_packaged(self):
+        self.assertNotIn("scripts/desktop.py", manage.PACKAGE_SUPPORT_FILES)
 
     def test_portable_prune_removes_only_build_and_test_payloads(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -121,7 +132,7 @@ class DistributionBoundaryTest(unittest.TestCase):
                     manage.install()
             self.assertFalse((root / ".runtime/installed.sha256").exists())
 
-    def test_existing_install_repairs_missing_desktop_runtime(self):
+    def test_existing_install_leaves_current_compatibility_assets(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             runtime = root / ".runtime"
@@ -131,15 +142,13 @@ class DistributionBoundaryTest(unittest.TestCase):
             (runtime / "installed.sha256").write_text(manage.file_hash(manage.LOCK), encoding="ascii")
             with (patch.object(manage, "ROOT", root), patch.object(manage, "RUNTIME", runtime),
                   patch.object(manage, "frontend_fingerprint", return_value="fresh-source"),
-                  patch.object(manage, "build_desktop") as build_desktop,
                   patch.object(manage, "build_frontend") as build_frontend,
                   patch.object(manage, "install") as install):
                 manage.ensure_installed()
             install.assert_not_called()
             build_frontend.assert_not_called()
-            build_desktop.assert_called_once_with()
 
-    def test_existing_install_refreshes_frontend_and_desktop(self):
+    def test_existing_install_refreshes_changed_compatibility_assets(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             runtime = root / ".runtime"
@@ -149,13 +158,11 @@ class DistributionBoundaryTest(unittest.TestCase):
             (runtime / "installed.sha256").write_text(manage.file_hash(manage.LOCK), encoding="ascii")
             with (patch.object(manage, "ROOT", root), patch.object(manage, "RUNTIME", runtime),
                   patch.object(manage, "frontend_fingerprint", return_value="new-source"),
-                  patch.object(manage, "build_desktop") as build_desktop,
                   patch.object(manage, "build_frontend") as build_frontend,
                   patch.object(manage, "install") as install):
                 manage.ensure_installed()
             install.assert_not_called()
             build_frontend.assert_called_once_with()
-            build_desktop.assert_called_once_with()
 
     def test_portable_install_returns_without_source_rebuilds(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -164,13 +171,11 @@ class DistributionBoundaryTest(unittest.TestCase):
             (runtime / "portable").mkdir(parents=True)
             (runtime / "portable/python.exe").write_bytes(b"portable")
             with (patch.object(manage, "ROOT", root), patch.object(manage, "RUNTIME", runtime),
-                  patch.object(manage, "build_desktop") as build_desktop,
                   patch.object(manage, "build_frontend") as build_frontend,
                   patch.object(manage, "install") as install):
                 manage.ensure_installed()
             install.assert_not_called()
             build_frontend.assert_not_called()
-            build_desktop.assert_not_called()
 
 
 if __name__ == "__main__":

@@ -57,17 +57,12 @@ try {
 
     if ($NoBrowser) {
         Write-Host "Client URL: $clientUrl"
-    } elseif ($Browser) {
-        Write-Host "Opening browser: $clientUrl" -ForegroundColor Cyan
-        Start-Process -FilePath $clientUrl
     } else {
-        Write-Host "Opening Desktop Client: $clientUrl" -ForegroundColor Cyan
-        $desktopProcess = Start-VCClientDesktop -RepositoryRoot $repoRoot -Url $clientUrl -WaitForWindow:($null -ne $owner)
-        if ($null -ne $owner) {
-            $desktopProcess.WaitForExit()
-            if ($desktopProcess.ExitCode -notin @(0, 10)) {
-                throw "Desktop Client exited with code $($desktopProcess.ExitCode)."
-            }
+        Write-Host "Opening upstream compatibility UI in browser: $clientUrl" -ForegroundColor Cyan
+        Start-Process -FilePath $clientUrl
+        if ($null -ne $owner -and $owner.OwnsProcess) {
+            Write-Host 'Closing the browser does not stop the Server.' -ForegroundColor DarkYellow
+            Read-Host 'Press Enter in this window to stop the Server started by this launcher' | Out-Null
             $stopped = Stop-VCClientOwnedProcess -Owner $owner
             if (!$stopped.Success) { throw "Could not stop the owned Server: $($stopped.Error)" }
             $owner = $null

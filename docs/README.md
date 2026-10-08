@@ -12,7 +12,6 @@
 - [現在の構成と開発方針](architecture.md)
 - [Official RVC の統合仕様（英語）](rvc-upstream-integration.md)
 - [Official RVC の更新手順](rvc-upstream-update.md)
-- [Desktop Client](../client/desktop/README.md)
 - [独立新フロントエンド voice-changer-client](https://github.com/yomihime/voice-changer-client)
 - [既存 Server 用の互換 UI](legacy-client-layout.md)
 - [上流コードの固定バージョンと変更点](../third_party/rvc/UPSTREAM.md)
@@ -24,9 +23,8 @@
 | 場所 | 内容 |
 | --- | --- |
 | `client/frontend/` | 独立リポジトリの Git submodule。開発・ビルドはその中で実行、2.x API 用 |
-| `client/demo/` | 既存 Server 用の互換 UI。上流のレイアウトと RVC バックエンド設定を維持 |
-| `client/lib/` | ブラウザ音声処理、通信、React hooks |
-| `client/desktop/` | 既存 Server UI 専用の Electron ウィンドウ |
+| `client/demo/` | 上流原版の互換 UI と配布済み dist。fork 独自変更は撤回 |
+| `client/lib/` | 上流原版のブラウザ音声処理、通信、React hooks |
 | `server/` | API、音声宿主、モデル管理、推論バックエンド |
 | `third_party/rvc/` | 固定した Official RVC の推論コード |
 | `scripts/`、ルートの Windows `.bat` | 現行のインストール・起動・検証・パッケージ作成 |

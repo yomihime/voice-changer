@@ -11,13 +11,13 @@ VCClient は、AI を用いてリアルタイム音声変換を行うソフト�
 - 原作者の 2.1.4-alpha 配布版の使い勝手を参考に、デスクトップ起動、依存環境の導入、ポータブル配布を整備します。
 - 独自バックエンド Hybrid は今後の検討対象です。現在は予約のみで、実装していません。Intel NPU 対応はこの新バックエンドで検討し、Legacy / Official には追加しません。
 
-使用方法は [Windows のインストール・起動・パッケージ作成](docs/windows-setup.md)、バックエンドの詳細は [RVC Official 統合](docs/rvc-upstream-integration.md)を参照してください。`start-client-windows.bat` で Server とデスクトップ Client を起動できます。
+使用方法は [Windows のインストール・起動・パッケージ作成](docs/windows-setup.md)、バックエンドの詳細は [RVC Official 統合](docs/rvc-upstream-integration.md)を参照してください。`start-client-windows.bat` で Server を起動し、上流の互換 UI を既定ブラウザで開きます。新しいデスクトップ Client は独立リポジトリの Tauri 2 で配布します。
 
 Recorder（音声収録ツール）は保守対象外です。ソースは履歴資料として残しています。
 
 ## ドキュメント
 
-- [独立新前端 voice-changer-client](https://github.com/yomihime/voice-changer-client)：通过 `client/frontend` 子模块引用，在该仓库内独立开发和构建；不包含本仓库的 Electron 壳。
+- [独立新前端 voice-changer-client](https://github.com/yomihime/voice-changer-client)：`client/frontend` 子モジュールで参照し、開発・ビルド・Tauri 2 パッケージ作成はそのリポジトリ内で行います。
 
 - [インストール・起動・パッケージ作成](docs/windows-setup.md)
 - [ドキュメント一覧・ディレクトリ案内](docs/README.md)

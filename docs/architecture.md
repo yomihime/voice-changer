@@ -7,18 +7,19 @@
 このリポジトリからは `client/frontend` Git submodule として固定コミットを参照します。
 2.1.4-alpha 配布版の復元成果を参考に、ページ・状態管理・API を分割して保守します。
 開発・テスト・ビルドは新リポジトリ内で完結し、本リポジトリのインストールや
-配布処理は新フロントエンドをビルド・同梱しません。Electron は移管していません。
+配布処理は新フロントエンドをビルド・同梱しません。新デスクトップ版は Tauri 2 を使用します。
 新フロントエンドは外部 2.x Server 用で、既存 Server の `/info` API との互換
-アダプターは未実装です。下図の `client/demo` / `client/lib` と Electron は
-既存 Server 用の経路として残っています。
+アダプターは未実装です。`client/frontend` 以外の `client/` は上流原版に戻しました。
+下図の `client/demo` / `client/lib` は既存 Server 用のブラウザ経路です。
+fork の Electron シェルは撤去し、互換 UI は上流の配布済み `client/demo/dist` を使用します。
 
 VCClient は、画面・音声デバイス・モデル管理と、推論バックエンドを組み合わせたリアルタイム音声変換アプリケーションです。
 
 ```mermaid
 flowchart TD
     Launcher[Windows ランチャー] --> Server[Python Server]
-    Launcher --> Desktop[Electron Client]
-    Desktop --> UI[client/demo 主画面]
+    Launcher --> Browser[既定ブラウザ]
+    Browser --> UI[client/demo 上流互換画面]
     UI --> Client[client/lib 音声処理・通信]
     Client --> API[REST / Socket.IO]
     Server --> API

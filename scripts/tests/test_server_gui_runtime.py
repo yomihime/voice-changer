@@ -170,19 +170,20 @@ class ControllerTests(unittest.TestCase):
             stop.assert_called_once_with(library.Process.return_value, library)
         self.assertFalse(self.controller.running)
 
-    def test_open_client_requires_identity_and_uses_legacy_url(self):
-        desktop = self.root / ".runtime/desktop/vcclient-desktop.exe"
-        desktop.parent.mkdir(parents=True)
-        desktop.touch()
+    def test_open_client_requires_identity_and_uses_browser(self):
         with patch.object(runtime, "probe_endpoint", return_value=runtime.EndpointState("ForeignHttp", 18888)), \
-                patch.object(runtime.subprocess, "Popen") as launch:
+                patch.object(runtime.webbrowser, "open") as launch:
             with self.assertRaises(RuntimeError):
                 self.controller.open_client(18888)
             launch.assert_not_called()
         with patch.object(runtime, "probe_endpoint", return_value=runtime.EndpointState("VCClientNoModel", 18888)), \
-                patch.object(runtime.subprocess, "Popen") as launch:
+                patch.object(runtime.webbrowser, "open", return_value=True) as launch:
             self.controller.open_client(18888)
-            self.assertEqual(launch.call_args.args[0], [str(desktop), "--url", "http://127.0.0.1:18888/"])
+            launch.assert_called_once_with("http://127.0.0.1:18888/")
+        with patch.object(runtime, "probe_endpoint", return_value=runtime.EndpointState("VCClientNoModel", 18888)), \
+                patch.object(runtime.webbrowser, "open", return_value=False):
+            with self.assertRaisesRegex(RuntimeError, "手动访问"):
+                self.controller.open_client(18888)
 
     def test_log_tail_is_bounded_and_tolerates_missing_files(self):
         self.assertEqual(self.controller.read_logs(), "")
