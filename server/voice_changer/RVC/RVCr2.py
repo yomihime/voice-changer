@@ -140,6 +140,11 @@ class RVCr2(VoiceChangerModel):
         self._map_f0_for_backend(candidate_settings, kind)
         return self._replace_backend(kind, candidate_settings)
 
+    def reset_stream(self):
+        with self._lifecycle_lock:
+            self.backend.reset_stream()
+            self._stream_generation += 1
+
     def setSamplingRate(self, inputSampleRate, outputSampleRate):
         with self._lifecycle_lock:
             if (self.inputSampleRate, self.outputSampleRate) == (inputSampleRate, outputSampleRate):

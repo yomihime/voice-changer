@@ -62,7 +62,7 @@ npm run dev
 ```
 
 接続設定と必要な Node 環境は新リポジトリの README を参照してください。
-ブラウザ出力は新リポジトリ内の `dist/` に置きます。デスクトップ版は Tauri 2 の EXE / NSIS インストーラーとして独立してビルドします。詳細は [TAURI.md](../client/frontend/TAURI.md) を参照してください。新 Client は 2.x API 用で、既存 Server の旧 API アダプターは未実装です。
+ブラウザ出力は新リポジトリ内の `dist/` に置きます。デスクトップ版は Tauri 2 の EXE / NSIS インストーラーとして独立してビルドします。EXE を開くと localhost:18888 を先に確認し、失敗時はアドレスを入力できます。既存 VCC の制御は集中アダプターで変換します。詳細は [TAURI.md](../client/frontend/TAURI.md)、実音声を含む段階別の検証状態は [開発記録](development/implementation-progress.md) を参照してください。
 旧 `build-frontend-windows.bat` / `start-frontend-windows.bat` は移行案内のみを表示し、
 旧 demo のビルドや新 UI の起動は行いません。
 

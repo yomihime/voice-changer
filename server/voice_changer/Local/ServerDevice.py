@@ -3,7 +3,7 @@ from dataclasses import dataclass, asdict
 import numpy as np
 from const import SERVER_DEVICE_SAMPLE_RATES
 
-from queue import Queue
+from queue import Queue, Empty, Full
 from mods.log_control import VoiceChangaerLogger
 
 from voice_changer.Local.AudioDeviceList import checkSamplingRate, list_audio_device
@@ -99,10 +99,11 @@ class ServerDevice:
         self.mon_wav = None
         self.serverAudioInputDevices = None
         self.serverAudioOutputDevices = None
-        self.outQueue = Queue()
-        self.monQueue = Queue()
+        self.outQueue = Queue(maxsize=2)
+        self.monQueue = Queue(maxsize=2)
         self.performance = []
         self._active_streams: tuple[object, ...] = ()
+        self._device_owns_audio = False
         self._device_epoch = 0
         self._device_state = "stopped"
         self._input_callback_count = 0
@@ -124,6 +125,7 @@ class ServerDevice:
             "unknown": 0,
         }
         self._queue_drop_count = 0
+        self._queue_underflow_count = 0
         self._loop_error_count = 0
         self._last_callback_error: str | None = None
         self._last_loop_error: str | None = None
@@ -183,6 +185,36 @@ class ServerDevice:
         self._last_loop_error = str(error)
         self._active_streams = ()
         self._device_state = "error"
+        self._clear_queues()
+
+    def _clear_queues(self):
+        for queue in (self.outQueue, self.monQueue):
+            for _ in range(2):
+                try:
+                    queue.get_nowait()
+                except Empty:
+                    break
+
+    def _queue_latest(self, queue, waveform):
+        try:
+            queue.put_nowait(waveform)
+        except Full:
+            try:
+                queue.get_nowait()
+                self._queue_drop_count += 1
+            except Empty:
+                pass
+            try:
+                queue.put_nowait(waveform)
+            except Full:
+                self._queue_drop_count += 1
+
+    def _prepare_streams(self):
+        self._device_owns_audio = True
+        self._clear_queues()
+        reset = getattr(self.serverDeviceCallbacks, 'reset_audio_stream', None)
+        if callable(reset):
+            reset()
 
     def _record_processed(self, out_wav: np.ndarray) -> None:
         self._processed_block_count += 1
@@ -205,16 +237,18 @@ class ServerDevice:
         return out_wav
 
     def audio_callback_outQueue(self, indata: np.ndarray, outdata: np.ndarray, frames, times, status):
+        outdata.fill(0)
         self._input_callback_count += 1
         self._input_samples += len(indata)
         self._record_callback_status(status)
         try:
             out_wav = self._processDataWithTime(indata)
             self._record_processed(out_wav)
-            self.outQueue.put(out_wav)
+            self._queue_latest(self.outQueue, out_wav)
             outputChannels = outdata.shape[1]  # Monitorへのアウトプット
             outdata[:] = np.repeat(out_wav, outputChannels).reshape(-1, outputChannels) / 32768.0
             outdata[:] = outdata * self.settings.serverMonitorAudioGain
+            self._monitor_write_count += 1
         except Exception as e:
             self._record_callback_error("duplex", e)
             print("[Voice Changer] ex:", e)
@@ -226,7 +260,7 @@ class ServerDevice:
         try:
             out_wav = self._processDataWithTime(indata)
             self._record_processed(out_wav)
-            self.outQueue.put(out_wav)
+            self._queue_latest(self.outQueue, out_wav)
         except Exception as e:
             self._record_callback_error("input", e)
             print("[Voice Changer][ServerDevice][audioInput_callback] ex:", e)
@@ -240,8 +274,8 @@ class ServerDevice:
         try:
             out_wav = self._processDataWithTime(indata)
             self._record_processed(out_wav)
-            self.outQueue.put(out_wav)
-            self.monQueue.put(out_wav)
+            self._queue_latest(self.outQueue, out_wav)
+            self._queue_latest(self.monQueue, out_wav)
         except Exception as e:
             self._record_callback_error("input-monitor", e)
             print("[Voice Changer][ServerDevice][audioInput_callback] ex:", e)
@@ -249,12 +283,13 @@ class ServerDevice:
             # traceback.print_exc()
 
     def audioOutput_callback(self, outdata: np.ndarray, frames, times, status):
+        outdata.fill(0)
         self._output_callback_count += 1
         self._record_callback_status(status)
         try:
-            out_wav = self.outQueue.get()
+            out_wav = self.outQueue.get_nowait()
             while self.outQueue.qsize() > 0:
-                self.outQueue.get()
+                out_wav = self.outQueue.get_nowait()
                 self._queue_drop_count += 1
             outputChannels = outdata.shape[1]
             outdata[:] = np.repeat(out_wav, outputChannels).reshape(-1, outputChannels) / 32768.0
@@ -264,6 +299,8 @@ class ServerDevice:
             # return a one-sample fallback; NumPy broadcasts it to all frames.
             # `processedOutputSamples` retains the source block length.
             self._output_samples += len(outdata)
+        except Empty:
+            self._queue_underflow_count += 1
         except Exception as e:
             self._record_callback_error("output", e)
             print("[Voice Changer][ServerDevice][audioOutput_callback]  ex:", e)
@@ -271,16 +308,19 @@ class ServerDevice:
             # traceback.print_exc()
 
     def audioMonitor_callback(self, outdata: np.ndarray, frames, times, status):
+        outdata.fill(0)
         self._record_callback_status(status)
         try:
-            mon_wav = self.monQueue.get()
+            mon_wav = self.monQueue.get_nowait()
             while self.monQueue.qsize() > 0:
-                self.monQueue.get()
+                mon_wav = self.monQueue.get_nowait()
                 self._queue_drop_count += 1
             outputChannels = outdata.shape[1]
             outdata[:] = np.repeat(mon_wav, outputChannels).reshape(-1, outputChannels) / 32768.0
             outdata[:] = outdata * self.settings.serverMonitorAudioGain
             self._monitor_write_count += 1
+        except Empty:
+            self._queue_underflow_count += 1
         except Exception as e:
             self._record_callback_error("monitor", e)
             print("[Voice Changer][ServerDevice][audioMonitor_callback]  ex:", e)
@@ -312,8 +352,17 @@ class ServerDevice:
         elif self.currentAudioSampleRate != self.settings.serverAudioSampleRate:
             print(f"currentAudioSampleRate Changed: {self.currentAudioSampleRate} -> {self.settings.serverAudioSampleRate}")
             return True
-        else:
-            return False
+
+        try:
+            active = all(stream.active for stream in self._active_streams)
+        except sd.PortAudioError:
+            active = False
+        if not active:
+            # PortAudio indices can be reassigned after a device disappears.
+            # Do not reopen streams automatically after a device disappears.
+            self.settings.serverAudioStated = 0
+            raise RuntimeError("A server audio device stopped unexpectedly. Check the selected devices and start again.")
+        return False
 
     def _activate_streams(self, *streams: object) -> None:
         self._active_streams = streams
@@ -322,15 +371,18 @@ class ServerDevice:
 
     def _deactivate_streams(self) -> None:
         self._active_streams = ()
+        self._device_owns_audio = False
+        self._clear_queues()
         self._device_state = (
             "starting" if self.settings.serverAudioStated == 1 else "stopped"
         )
 
     def runNoMonitorSeparate(self, block_frame: int, inputMaxChannel: int, outputMaxChannel: int, inputExtraSetting, outputExtraSetting):
-        with sd.InputStream(callback=self.audioInput_callback_outQueue, dtype="float32", device=self.settings.serverInputDeviceId, blocksize=block_frame, samplerate=self.settings.serverInputAudioSampleRate, channels=inputMaxChannel, extra_settings=inputExtraSetting) as input_stream:
-            with sd.OutputStream(callback=self.audioOutput_callback, dtype="float32", device=self.settings.serverOutputDeviceId, blocksize=block_frame, samplerate=self.settings.serverOutputAudioSampleRate, channels=outputMaxChannel, extra_settings=outputExtraSetting) as output_stream:
-                self._activate_streams(input_stream, output_stream)
-                try:
+        try:
+            self._prepare_streams()
+            with sd.InputStream(callback=self.audioInput_callback_outQueue, dtype="float32", device=self.settings.serverInputDeviceId, blocksize=block_frame, samplerate=self.settings.serverInputAudioSampleRate, channels=inputMaxChannel, extra_settings=inputExtraSetting) as input_stream:
+                with sd.OutputStream(callback=self.audioOutput_callback, dtype="float32", device=self.settings.serverOutputDeviceId, blocksize=block_frame, samplerate=self.settings.serverOutputAudioSampleRate, channels=outputMaxChannel, extra_settings=outputExtraSetting) as output_stream:
+                    self._activate_streams(input_stream, output_stream)
                     while True:
                         changed = self.checkSettingChanged()
                         if changed:
@@ -341,14 +393,15 @@ class ServerDevice:
                         print(f"                input  : id:{self.settings.serverInputDeviceId}, sr:{self.settings.serverInputAudioSampleRate}, ch:{inputMaxChannel}")
                         print(f"                output : id:{self.settings.serverOutputDeviceId}, sr:{self.settings.serverOutputAudioSampleRate}, ch:{outputMaxChannel}")
                         # print(f"                monitor: id:{self.settings.serverMonitorDeviceId}, sr:{self.settings.serverMonitorAudioSampleRate}, ch:{self.serverMonitorAudioDevice.maxOutputChannels}")
-                finally:
-                    self._deactivate_streams()
+        finally:
+            self._deactivate_streams()
 
     def runWithMonitorStandard(self, block_frame: int, inputMaxChannel: int, outputMaxChannel: int, monitorMaxChannel: int, inputExtraSetting, outputExtraSetting, monitorExtraSetting):
-        with sd.Stream(callback=self.audio_callback_outQueue, dtype="float32", device=(self.settings.serverInputDeviceId, self.settings.serverMonitorDeviceId), blocksize=block_frame, samplerate=self.settings.serverInputAudioSampleRate, channels=(inputMaxChannel, monitorMaxChannel), extra_settings=[inputExtraSetting, monitorExtraSetting]) as monitor_stream:
-            with sd.OutputStream(callback=self.audioOutput_callback, dtype="float32", device=self.settings.serverOutputDeviceId, blocksize=block_frame, samplerate=self.settings.serverOutputAudioSampleRate, channels=outputMaxChannel, extra_settings=outputExtraSetting) as output_stream:
-                self._activate_streams(monitor_stream, output_stream)
-                try:
+        try:
+            self._prepare_streams()
+            with sd.Stream(callback=self.audio_callback_outQueue, dtype="float32", device=(self.settings.serverInputDeviceId, self.settings.serverMonitorDeviceId), blocksize=block_frame, samplerate=self.settings.serverInputAudioSampleRate, channels=(inputMaxChannel, monitorMaxChannel), extra_settings=[inputExtraSetting, monitorExtraSetting]) as monitor_stream:
+                with sd.OutputStream(callback=self.audioOutput_callback, dtype="float32", device=self.settings.serverOutputDeviceId, blocksize=block_frame, samplerate=self.settings.serverOutputAudioSampleRate, channels=outputMaxChannel, extra_settings=outputExtraSetting) as output_stream:
+                    self._activate_streams(monitor_stream, output_stream)
                     while True:
                         changed = self.checkSettingChanged()
                         if changed:
@@ -359,15 +412,16 @@ class ServerDevice:
                         print(f"                input  : id:{self.settings.serverInputDeviceId}, sr:{self.settings.serverInputAudioSampleRate}, ch:{inputMaxChannel}")
                         print(f"                output : id:{self.settings.serverOutputDeviceId}, sr:{self.settings.serverOutputAudioSampleRate}, ch:{outputMaxChannel}")
                         print(f"                monitor: id:{self.settings.serverMonitorDeviceId}, sr:{self.settings.serverMonitorAudioSampleRate}, ch:{monitorMaxChannel}")
-                finally:
-                    self._deactivate_streams()
+        finally:
+            self._deactivate_streams()
 
     def runWithMonitorAllSeparate(self, block_frame: int, inputMaxChannel: int, outputMaxChannel: int, monitorMaxChannel: int, inputExtraSetting, outputExtraSetting, monitorExtraSetting):
-        with sd.InputStream(callback=self.audioInput_callback_outQueue_monQueue, dtype="float32", device=self.settings.serverInputDeviceId, blocksize=block_frame, samplerate=self.settings.serverInputAudioSampleRate, channels=inputMaxChannel, extra_settings=inputExtraSetting) as input_stream:
-            with sd.OutputStream(callback=self.audioOutput_callback, dtype="float32", device=self.settings.serverOutputDeviceId, blocksize=block_frame, samplerate=self.settings.serverOutputAudioSampleRate, channels=outputMaxChannel, extra_settings=outputExtraSetting) as output_stream:
-                with sd.OutputStream(callback=self.audioMonitor_callback, dtype="float32", device=self.settings.serverMonitorDeviceId, blocksize=block_frame, samplerate=self.settings.serverMonitorAudioSampleRate, channels=monitorMaxChannel, extra_settings=monitorExtraSetting) as monitor_stream:
-                    self._activate_streams(input_stream, output_stream, monitor_stream)
-                    try:
+        try:
+            self._prepare_streams()
+            with sd.InputStream(callback=self.audioInput_callback_outQueue_monQueue, dtype="float32", device=self.settings.serverInputDeviceId, blocksize=block_frame, samplerate=self.settings.serverInputAudioSampleRate, channels=inputMaxChannel, extra_settings=inputExtraSetting) as input_stream:
+                with sd.OutputStream(callback=self.audioOutput_callback, dtype="float32", device=self.settings.serverOutputDeviceId, blocksize=block_frame, samplerate=self.settings.serverOutputAudioSampleRate, channels=outputMaxChannel, extra_settings=outputExtraSetting) as output_stream:
+                    with sd.OutputStream(callback=self.audioMonitor_callback, dtype="float32", device=self.settings.serverMonitorDeviceId, blocksize=block_frame, samplerate=self.settings.serverMonitorAudioSampleRate, channels=monitorMaxChannel, extra_settings=monitorExtraSetting) as monitor_stream:
+                        self._activate_streams(input_stream, output_stream, monitor_stream)
                         while True:
                             changed = self.checkSettingChanged()
                             if changed:
@@ -378,8 +432,8 @@ class ServerDevice:
                             print(f"                input  : id:{self.settings.serverInputDeviceId}, sr:{self.settings.serverInputAudioSampleRate}, ch:{inputMaxChannel}")
                             print(f"                output : id:{self.settings.serverOutputDeviceId}, sr:{self.settings.serverOutputAudioSampleRate}, ch:{outputMaxChannel}")
                             print(f"                monitor: id:{self.settings.serverMonitorDeviceId}, sr:{self.settings.serverMonitorAudioSampleRate}, ch:{monitorMaxChannel}")
-                    finally:
-                        self._deactivate_streams()
+        finally:
+            self._deactivate_streams()
 
     ###########################################
     # Start Section
@@ -389,7 +443,8 @@ class ServerDevice:
         while True:
             if self.settings.serverAudioStated == 0 or self.settings.serverInputDeviceId == -1:
                 self._active_streams = ()
-                self._device_state = "stopped"
+                if self._device_state != "error":
+                    self._device_state = "stopped"
                 # sd._terminate()
                 # sd._initialize()
                 time.sleep(2)
@@ -410,6 +465,12 @@ class ServerDevice:
                 if self.settings.serverMonitorDeviceId != -1:
                     serverMonitorAudioDevice = self.getServerOutputAudioDevice(self.settings.serverMonitorDeviceId)
 
+                if (serverInputAudioDevice is None or serverOutputAudioDevice is None
+                        or (self.settings.serverMonitorDeviceId != -1 and serverMonitorAudioDevice is None)):
+                    self.settings.serverAudioStated = 0
+                    self._record_loop_error("A selected server audio device is unavailable. Check the selected devices and start again.")
+                    continue
+
                 # Generate ExtraSetting
                 inputExtraSetting = None
                 outputExtraSetting = None
@@ -427,15 +488,6 @@ class ServerDevice:
                 print("  [Input]:", serverInputAudioDevice, inputExtraSetting)
                 print("  [Output]:", serverOutputAudioDevice, outputExtraSetting)
                 print("  [Monitor]:", serverMonitorAudioDevice, monitorExtraSetting)
-
-                # Deviceがなかったらいったんスリープ
-                if serverInputAudioDevice is None or serverOutputAudioDevice is None:
-                    self._record_loop_error(
-                        "serverInputAudioDevice or serverOutputAudioDevice is None"
-                    )
-                    print("serverInputAudioDevice or serverOutputAudioDevice is None")
-                    time.sleep(2)
-                    continue
 
                 # サンプリングレート
                 # 同一サンプリングレートに統一（変換時にサンプルが不足する場合があるため。パディング方法が明らかになれば、それぞれ設定できるかも）
@@ -560,12 +612,15 @@ class ServerDevice:
         except Exception:
             active = False
         state = self._device_state
-        if state == "active" and not active:
+        if self._device_owns_audio and self.settings.serverAudioStated == 0:
+            state = "stopping"
+        elif state == "active" and not active:
             state = "error"
         data["serverDeviceRuntimeInfo"] = {
             "epoch": self._device_epoch,
             "state": state,
             "active": active,
+            "ownsAudio": self._device_owns_audio,
             "inputCallbackCount": self._input_callback_count,
             "inputSamples": self._input_samples,
             "processedBlockCount": self._processed_block_count,
@@ -578,6 +633,10 @@ class ServerDevice:
             "callbackStatusCount": self._callback_status_count,
             "callbackStatus": dict(self._status_counts),
             "queueDropCount": self._queue_drop_count,
+            "queueUnderflowCount": self._queue_underflow_count,
+            "outputQueueBlocks": self.outQueue.qsize(),
+            "monitorQueueBlocks": self.monQueue.qsize(),
+            "queueCapacityBlocks": 2,
             "loopErrorCount": self._loop_error_count,
             "lastCallbackError": self._last_callback_error,
             "lastLoopError": self._last_loop_error,
@@ -587,6 +646,8 @@ class ServerDevice:
     def update_settings(self, key: str, val: str | int | float):
         if key in EditableServerDeviceSettings["intData"]:
             setattr(self.settings, key, int(val))
+            if key == "serverAudioStated" and self.settings.serverAudioStated == 0 and not self._device_owns_audio:
+                self._device_state = "stopped"
         elif key in EditableServerDeviceSettings["floatData"]:
             setattr(self.settings, key, float(val))
         return self.get_info()

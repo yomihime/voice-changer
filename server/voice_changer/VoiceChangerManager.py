@@ -27,6 +27,10 @@ import re
 logger = VoiceChangaerLogger.get_instance().getLogger()
 
 
+class AudioStreamBusyError(RuntimeError):
+    pass
+
+
 @dataclass()
 class GPUInfo:
     id: int
@@ -54,7 +58,7 @@ class VoiceChangerManager(ServerDeviceCallbacks):
     # ServerDeviceCallbacks
     ############################
     def on_request(self, unpackedData: AudioInOut):
-        return self.changeVoice(unpackedData)
+        return self.changeVoice(unpackedData, source='server')
 
     def emitTo(self, performance: list[float]):
         self.emitToFunc(performance)
@@ -72,6 +76,7 @@ class VoiceChangerManager(ServerDeviceCallbacks):
     # VoiceChangerManager
     ############################
     def __init__(self, params: VoiceChangerParams):
+        self._model_registration_lock = threading.RLock()
         logger.info("[Voice Changer] VoiceChangerManager initializing...")
         self.params = params
         self.voiceChanger: VoiceChanger = None
@@ -132,7 +137,33 @@ class VoiceChangerManager(ServerDeviceCallbacks):
             cls._instance = cls(params)
         return cls._instance
 
-    def loadModel(self, params: LoadModelParams):
+    def loadModel(self, params: LoadModelParams, *, require_empty: bool = False):
+        with self._model_registration_lock:
+            if require_empty:
+                if (type(params.slot) is not int or not 0 <= params.slot < 500
+                        or params.isSampleMode or params.voiceChangerType != "RVC"):
+                    raise ValueError("Safe registration requires an empty numeric RVC slot")
+                kinds = [file.kind for file in params.files]
+                if kinds.count("rvcModel") != 1 or kinds.count("rvcIndex") > 1 or len(kinds) not in (1, 2):
+                    raise ValueError("Safe registration requires one RVC model and optional index")
+                for file in params.files:
+                    extensions = (".pth", ".onnx") if file.kind == "rvcModel" else (".index",)
+                    if (file.kind not in {"rvcModel", "rvcIndex"} or file.dir != ""
+                            or not file.name or len(file.name) > 240
+                            or any(character in file.name for character in '/\\:')
+                            or any(ord(character) < 32 for character in file.name)
+                            or not file.name.lower().endswith(extensions)
+                            or not os.path.isfile(os.path.join(UPLOAD_DIR, file.name))
+                            or os.path.islink(os.path.join(UPLOAD_DIR, file.name))):
+                        raise ValueError("Invalid uploaded RVC resource")
+                slot_dir = os.path.join(self.params.model_dir, str(params.slot))
+                # mkdir reserves the slot across concurrent requests/processes. A failed
+                # import leaves its directory available for inspection, never deletion.
+                os.makedirs(self.params.model_dir, exist_ok=True)
+                os.mkdir(slot_dir)
+            return self._load_model(params, replace_existing=not require_empty)
+
+    def _load_model(self, params: LoadModelParams, *, replace_existing: bool = True):
         if params.isSampleMode:
             # サンプルダウンロード
             logger.info(f"[Voice Changer] sample download...., {params}")
@@ -147,7 +178,7 @@ class VoiceChangerManager(ServerDeviceCallbacks):
                 self.params.model_dir,
                 str(params.slot),
             )
-            if os.path.isdir(slotDir):
+            if replace_existing and os.path.isdir(slotDir):
                 shutil.rmtree(slotDir)
 
             for file in params.files:
@@ -331,11 +362,15 @@ class VoiceChangerManager(ServerDeviceCallbacks):
 
     def update_settings(self, key: str, val: str | int | float | bool):
         if key in self.settings.boolData:
+            previous = getattr(self.settings, key)
             if val == "true":
                 newVal = True
             elif val == "false":
                 newVal = False
             setattr(self.settings, key, newVal)
+            model = getattr(self.voiceChanger, 'voiceChanger', None)
+            if key == 'passThrough' and previous != newVal and callable(getattr(model, 'reset_stream', None)):
+                self.reset_audio_stream()
         elif key in self.settings.intData:
             if key == "modelSlotIndex":
                 try:
@@ -368,7 +403,22 @@ class VoiceChangerManager(ServerDeviceCallbacks):
 
         return self.get_info()
 
-    def changeVoice(self, receivedData: AudioInOut):
+    def reset_audio_stream(self, *, strict=False):
+        if self.voiceChanger is not None:
+            reset = getattr(self.voiceChanger, 'reset_stream', None)
+            model = getattr(self.voiceChanger, 'voiceChanger', None)
+            if not callable(reset) or (model is not None and not callable(getattr(model, 'reset_stream', None))):
+                if strict:
+                    raise ValueError('The selected model does not support stream reset')
+                return
+            reset()
+
+    def changeVoice(self, receivedData: AudioInOut, *, source='client'):
+        device = getattr(self, 'serverDevice', None)
+        if source != 'server' and device is not None and (
+                device.settings.serverAudioStated == 1 or bool(device._active_streams)
+                or bool(getattr(device, '_device_owns_audio', False))):
+            raise AudioStreamBusyError('Server Device owns the audio stream')
         if self.settings.passThrough is True:  # パススルー
             return receivedData, []
 

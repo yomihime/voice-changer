@@ -80,6 +80,9 @@ class LegacyRvcBackend:
         self.feature_buffer = None
         self.prev_vol = 0.0
 
+    def reset_stream(self) -> None:
+        self._reset_stream_state()
+
     def set_sampling_rate(self, input_sample_rate: int, output_sample_rate: int) -> None:
         self.input_sample_rate = input_sample_rate
         self.output_sample_rate = output_sample_rate

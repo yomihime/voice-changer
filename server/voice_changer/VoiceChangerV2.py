@@ -118,6 +118,15 @@ class VoiceChangerV2(VoiceChangerIF):
                 self.noCrossFade = False
             self._reset_output_state()
 
+    def reset_stream(self):
+        with self._processing_lock:
+            if self.voiceChanger is not None:
+                reset = getattr(self.voiceChanger, 'reset_stream', None)
+                if not callable(reset):
+                    raise ValueError('The selected model does not support stream reset')
+                reset()
+            self._reset_output_state()
+
     def setInputSampleRate(self, sr: int):
         with self._processing_lock:
             if self.settings.inputSampleRate == sr:
