@@ -1,6 +1,6 @@
 # VCClient A / B / C 実装状況
 
-更新日：2026-11-06。Tauri 接続、既存 VCC 制御、音声と復旧を対象とした試用候補です。C の監視音声は利用者が聞けず、聴感受入は不合格で原因を調査しています。D 以降の Host 分離・新 Official・C++・NPU は本変更に含めません。
+更新日：2026-11-07。Tauri 接続、既存 VCC 制御、音声と復旧を対象とした試用候補です。C の監視音声は利用者が聞けず、聴感受入は不合格で原因を調査しています。D 以降の Host 分離・新 Official・C++・NPU は本変更に含めません。
 
 | 段階 | 状態 | 実装と確認範囲 |
 | --- | --- | --- |
@@ -100,3 +100,9 @@ EXE は `client/frontend/src-tauri/target/release/voice-changer-client.exe`、NS
 - Node 全体114/114と独立 lifecycle / routing 38/38が通過しました。実 Chromium の OfflineAudioContext では、既存 worklet 出力入口の ACK を順に待ってから19,200フレームをレンダリングし、19,200フレームの非ゼロ出力と監視 gain 比0.25を確認しました。この離線検証の最初の並列投入ではゼロ出力となったため、結果を保持して順序を分離しました。リアルタイム Context・キャプチャ・play・sink の呼び出しはゼロです。
 - OfflineAudioContext は MediaStreamDestination を提供しません。このブラウザ対照は worklet と GainNode までであり、監視 stream、HTML 媒体要素、Windows 出力、真人聴感の検証には使いません。利用者の聴感受入は引き続き不合格、無音の根因は未確定です。
 - オフライン release EXE/NSIS 構築が通過しました。同じ EXE を独立 profile・hidden・deny-media で確認し、未作成 context / 未活動入力のまま新しい観測値を取得できました。接続・移行・port 回退・再試行も通過しています。スクリーンショット、実音声、モデル推論は行っていません。
+
+## Client のグラフ構築の追加オフライン対照
+
+- 11月7日、Chromium 157 の実 OfflineAudioContext に実 Client と worklet を読み込み、19,200 / 9,600 / 4,864フレームの出力入口から実 GainNode を検証しました。監視 gain の0→0.25、0、0→0.30更新は実値に反映され、非ゼロフレーム数は各投入数と一致しました。監視0でも主出力は非ゼロで、監視の非ゼロ分岐は期待する増幅率と一致しました。
+- 同じ Client オブジェクトの dispose・再初期化で分岐の識別が変わり、旧 track の終了と停止態診断を確認しました。ただし OfflineAudioContext にない stream destination は、実 GainNode と合成 track メタデータの試験用 adapter です。実ストリームの生成・消費、Start 全体、backend、媒体要素や Windows の証拠には使いません。
+- 最初は試験側が評価関数を呼び出しておらず失敗しました。呼び出しを修正した対照は3条件とも通過し、失敗記録も保持しています。リアルタイム Context・キャプチャ・play・sink・外部通信の試行はゼロ、試験用ブラウザは終了済みです。製品ソースと既存 EXE は変更せず、無音の根因は引き続き未確定です。
