@@ -1,5 +1,6 @@
 import json
 import os
+import logging
 from typing import Union
 from fastapi import APIRouter
 from fastapi.encoders import jsonable_encoder
@@ -27,6 +28,7 @@ class MMVC_Rest_Fileuploader:
         self.router.add_api_route("/concat_uploaded_file", self.post_concat_uploaded_file, methods=["POST"])
         self.router.add_api_route("/update_settings", self.post_update_settings, methods=["POST"])
         self.router.add_api_route("/load_model", self.post_load_model, methods=["POST"])
+        self.router.add_api_route("/load_model_if_empty", self.post_load_model_if_empty, methods=["POST"])
         self.router.add_api_route("/onnx", self.get_onnx, methods=["GET"])
         self.router.add_api_route("/merge_model", self.post_merge_models, methods=["POST"])
         self.router.add_api_route("/update_model_default", self.post_update_model_default, methods=["POST"])
@@ -52,6 +54,10 @@ class MMVC_Rest_Fileuploader:
     def get_info(self):
         try:
             info = self.voiceChangerManager.get_info()
+            info["clientCapabilities"] = {"safeModelRegistration": True, "audioEpoch": True}
+            model_dir = self.voiceChangerManager.params.model_dir
+            info["occupiedModelSlots"] = sorted(int(entry.name) for entry in os.scandir(model_dir)
+                if entry.name.isdecimal() and 0 <= int(entry.name) < 500) if os.path.isdir(model_dir) else []
             json_compatible_item_data = jsonable_encoder(info)
             return JSONResponse(content=json_compatible_item_data)
         except Exception as e:
@@ -97,6 +103,26 @@ class MMVC_Rest_Fileuploader:
             import traceback
             traceback.print_exc()
             
+    def post_load_model_if_empty(self, slot: int = Form(...), isHalf: bool = Form(...), params: str = Form(...)):
+        try:
+            values = json.loads(params)
+            load_params = LoadModelParams(**values)
+            load_params.files = [LoadModelParamFile(**value) for value in values["files"]]
+            if load_params.slot != slot:
+                raise ValueError("Slot fields do not match")
+            self.voiceChangerManager.loadModel(load_params, require_empty=True)
+            return {"status": "OK"}
+        except FileExistsError:
+            return JSONResponse(status_code=409, content={"error": {
+                "code": "slot_occupied", "reason": "The slot already contains files. They have been preserved."}})
+        except (ValueError, TypeError, KeyError) as error:
+            return JSONResponse(status_code=422, content={"error": {
+                "code": "invalid_resource", "reason": str(error)}})
+        except Exception:
+            logging.getLogger(__name__).exception("Safe model registration failed")
+            return JSONResponse(status_code=422, content={"error": {
+                "code": "model_load_failed", "reason": "The uploaded model could not be registered. Partial files have been preserved."}})
+
     def get_onnx(self):
         try:
             info = self.voiceChangerManager.export2onnx()

@@ -213,6 +213,9 @@ class UpstreamRvcBackend:
             self.engine.cache_pitch.zero_()
             self.engine.cache_pitchf.zero_()
 
+    def reset_stream(self) -> None:
+        self._reset_stream_state()
+
     def unload_model(self) -> None:
         self._ready = False
         engine = self.engine

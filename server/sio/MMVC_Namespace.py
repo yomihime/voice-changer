@@ -2,7 +2,7 @@ import struct
 from datetime import datetime
 import numpy as np
 import socketio
-from voice_changer.VoiceChangerManager import VoiceChangerManager
+from voice_changer.VoiceChangerManager import VoiceChangerManager, AudioStreamBusyError
 
 import asyncio
 
@@ -49,7 +49,11 @@ class MMVC_Namespace(socketio.AsyncNamespace):
         else:
             unpackedData = np.array(struct.unpack("<%sh" % (len(data) // struct.calcsize("<h")), data)).astype(np.int16)
 
-            res = self.voiceChangerManager.changeVoice(unpackedData)
+            try:
+                res = self.voiceChangerManager.changeVoice(unpackedData)
+            except AudioStreamBusyError:
+                await self.emit('exception', ['AUDIO_STREAM_BUSY', 'Server Device owns the audio stream'], to=sid)
+                return
             audio1 = res[0]
             perf = res[1] if len(res) == 2 else [0, 0, 0]
             bin = struct.pack("<%sh" % len(audio1), *audio1)
